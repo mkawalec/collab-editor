@@ -53,8 +53,8 @@ getOffset allocType p q = do
                   Minus -> q - offset
     pure idx
 
-walkTree :: forall a e. Letter a -> Int -> Tuple Int Int -> TreeBody a -> Eff (random :: RANDOM | e) (CharTree a)
-walkTree letter idx coords tree@{chars, allocType} =
+walkTree :: forall a e. Letter a -> Tuple Int Int -> TreeBody a -> Int -> Eff (random :: RANDOM | e) (CharTree a)
+walkTree letter coords tree@{chars, allocType} idx =
   case M.lookup idx chars of
     Nothing   -> pure $ CharTree $ tree {chars = M.insert idx letter chars}
     Just char -> do
@@ -69,8 +69,7 @@ insert letter _ _ Leaf = newCharTree >>= case _ of
     pure $ CharTree $ tree {chars = M.insert idx letter chars}
   Leaf -> pure $ Leaf -- this should never happen lol
 
-insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) = do
-  idx <- getOffset allocType p q
-  walkTree letter idx coords tree
+insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
+  getOffset allocType p q >>= walkTree letter coords tree 
 
-insert letter (Cons x xs) coords (CharTree tree) = walkTree letter x coords tree
+insert letter (Cons x xs) coords (CharTree tree) = walkTree letter coords tree x
