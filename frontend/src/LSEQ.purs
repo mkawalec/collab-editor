@@ -4,13 +4,11 @@ import Prelude
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Random (RANDOM, randomBool, random)
-
+import Data.Int (floor, toNumber)
 import Data.List (List(..))
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Data.Int (floor, toNumber)
-
 import Math (pow)
 
 type Letter a = {
@@ -21,10 +19,12 @@ type Letter a = {
 
 data AllocType = Plus | Minus
 
-data CharTree a = Leaf | CharTree {
+type TreeBody a = {
   chars :: M.Map Int (Letter a)
 , allocType :: AllocType
 }
+
+data CharTree a = Leaf | CharTree (TreeBody a)
 
 data Position = Position (List Int) Int Int -- | (Subtree, p, q)
 
@@ -53,6 +53,15 @@ getOffset allocType p q = do
                   Minus -> q - offset
     pure idx
 
+walkTree :: forall a e. Letter a -> Int -> Tuple Int Int -> TreeBody a -> Eff (random :: RANDOM | e) (CharTree a)
+walkTree letter idx coords tree@{chars, allocType} =
+  case M.lookup idx chars of
+    Nothing   -> pure $ CharTree $ tree {chars = M.insert idx letter chars}
+    Just char -> do
+      subtree <- insert letter Nil coords char.subtree
+      let char' = char {subtree = subtree}
+      pure $ CharTree $ tree {chars = M.insert idx char' chars}
+
 insert :: forall a e. Letter a -> List Int -> Tuple Int Int -> CharTree a -> Eff (random :: RANDOM | e) (CharTree a)
 insert letter _ _ Leaf = newCharTree >>= case _ of
   (CharTree tree@{chars, allocType}) -> do
@@ -60,19 +69,8 @@ insert letter _ _ Leaf = newCharTree >>= case _ of
     pure $ CharTree $ tree {chars = M.insert idx letter chars}
   Leaf -> pure $ Leaf -- this should never happen lol
 
-insert letter Nil (Tuple p q) (CharTree tree@{chars, allocType}) = do
+insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) = do
   idx <- getOffset allocType p q
-  case M.lookup idx chars of
-    Nothing   -> pure $ CharTree $ tree {chars = M.insert idx letter chars}
-    Just char -> do
-      subtree <- insert letter Nil (Tuple p q) char.subtree
-      let char' = char {subtree = subtree}
-      pure $ CharTree $ tree {chars = M.insert idx char' chars}
+  walkTree letter idx coords tree
 
-insert letter (Cons x xs) (Tuple p q) (CharTree tree@{chars, allocType}) =
-  case M.lookup x chars of
-    Just char -> do
-      subtree <- insert letter xs (Tuple p q) char.subtree
-      let char' = char {subtree = subtree}
-      pure $ CharTree $ tree {chars = M.insert x char' chars}
-    Nothing   -> pure $ CharTree $ tree {chars = M.insert x letter chars}
+insert letter (Cons x xs) coords (CharTree tree) = walkTree letter x coords tree
