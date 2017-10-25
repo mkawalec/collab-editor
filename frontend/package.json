@@ -1,0 +1,21 @@
+{
+  "name": "collab-edit",
+  "version": "1.0.0",
+  "description": "A frontend for a collaborative editor",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack-dev-server",
+    "build": "webpack"
+  },
+  "author": "Michał Kawalec <michal@monad.cat>",
+  "license": "GPL-2.0",
+  "devDependencies": {
+    "purs-loader": "^3.1.2",
+    "webpack": "^3.8.1",
+    "webpack-dev-server": "^2.9.3"
+  }
+}
