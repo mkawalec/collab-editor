@@ -80,12 +80,12 @@ insert letter _ _ Leaf = newCharTree >>= case _ of
   (CharTree tree@{chars, allocType}) -> do
     idx <- getOffset allocType 0 capacity
     pure $ CharTree $ tree {chars = M.insert idx letter chars}
-  Leaf -> pure $ Leaf -- this should never happen lol
+  Leaf -> trace "never?" \_ -> pure $ Leaf -- this should never happen lol
 
 insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
   getOffset allocType p q >>= \idx -> case idx of
     0 -> case M.lookup idx chars of
-            Just char -> do
+            Just char -> trace "rotating" \_ -> do
               -- insert the letter as a first element of the bottom subtree,
               -- with a leaf subtree
               let char'   = char {subtree = Leaf}
