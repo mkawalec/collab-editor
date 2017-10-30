@@ -129,7 +129,7 @@ findPath' path id (CharTree {chars}) =
 foldl walker Nothing (ch :: List (Tuple Int (Letter a b)))
 
 findPath :: forall a b. Eq b => b -> CharTree a b -> Maybe (Tuple (List Int) Int)
-findPath id tree = case findPath' Nil id tree of
+findPath id tree = case L.reverse <$> findPath' Nil id tree of
   Nothing   -> Nothing
   Just path -> L.init path >>= (\p -> (Tuple p) <$> L.last path)
 

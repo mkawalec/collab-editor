@@ -55,7 +55,4 @@ main = run [consoleReporter] do
                   Just (Tuple path id) -> unsafePerformEff $ insert l path (Tuple id (id + 1)) tree
               ) emptyTree $ A.zip letters charsWithPrevious
 
-        let a = unsafePerformEff $ case L.print result /= str of
-                                            true -> log $ L.draw 0 result <> "\n\n"
-                                            false -> log ""
         L.print result === str
