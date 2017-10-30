@@ -7,15 +7,18 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Eff.Random (RANDOM)
+import Control.Monad.Eff.Unsafe (unsafePerformEff)
 import Control.Monad.State (evalState, State(..), put, get)
 import Data.Array as A
+import Data.Foldable (foldl)
 import Data.List (List(..))
+import Data.List.Lazy (stripPrefix)
 import Data.Maybe (Maybe(..))
 import Data.String as S
 import Data.Traversable (traverse)
-import Data.Foldable (foldl)
 import Data.Tuple (Tuple(..))
 import Data.Unit (Unit(..))
+import Debug.Trace (trace, traceShow)
 import LSEQ as L
 import Test.QuickCheck ((===), (/==), Result(..))
 import Test.Spec (pending, describe, it)
@@ -23,9 +26,6 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.QuickCheck (QCRunnerEffects, quickCheck)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (RunnerEffects, run)
-import Control.Monad.Eff.Unsafe (unsafePerformEff)
-
-import Debug.Trace (trace, traceShow)
 
 makeLetter :: Char -> Int -> Letter Unit Int
 makeLetter l id = {letter: l, id: id, meta: unit, subtree: Leaf}
@@ -54,4 +54,8 @@ main = run [consoleReporter] do
                   -- we need to define a lens to zoom in on this fragment
                   Just (Tuple path id) -> unsafePerformEff $ insert l path (Tuple id (id)) tree
               ) emptyTree $ A.zip letters charsWithPrevious
+
+        let a = unsafePerformEff $ case L.print result /= str of
+                                            true -> log $ L.draw 0 result <> "\n\n"
+                                            false -> log ""
         L.print result === str

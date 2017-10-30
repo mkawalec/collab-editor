@@ -2,8 +2,10 @@ module LSEQ where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Random (RANDOM, randomBool, random)
+import Data.Array (replicate)
 import Data.Foldable (foldl)
 import Data.Int (floor, toNumber)
 import Data.List (List(..), foldMap)
@@ -12,10 +14,8 @@ import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String as S
 import Data.Tuple (Tuple(..))
-import Math (pow)
-import Control.Alt ((<|>))
-
 import Debug.Trace (trace, traceShow)
+import Math (pow)
 
 type Letter a b = {
   letter :: Char
@@ -132,3 +132,11 @@ findPath :: forall a b. Eq b => b -> CharTree a b -> Maybe (Tuple (List Int) Int
 findPath id tree = case findPath' Nil id tree of
   Nothing   -> Nothing
   Just path -> L.init path >>= (\p -> (Tuple p) <$> L.last path)
+
+
+draw :: forall a b. Int -> CharTree a b -> String
+draw _ Leaf = ""
+draw indent (CharTree {chars}) =
+    foldl (\acc (Tuple k v) -> acc <> indentStr <> "|- " <> S.singleton v.letter <> "\n" <> draw (indent + 1) v.subtree) "" values
+  where values = M.toAscUnfoldable chars :: List (Tuple Int (Letter a b))
+        indentStr = foldl (\s p -> s <> p) "" $ replicate indent "  "
