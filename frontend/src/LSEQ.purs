@@ -4,33 +4,35 @@ import Prelude
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Random (RANDOM, randomBool, random)
+import Data.Foldable (foldl)
 import Data.Int (floor, toNumber)
 import Data.List (List(..), foldMap)
+import Data.List as L
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.String as S
 import Data.Tuple (Tuple(..))
 import Math (pow)
-import Data.String as S
-import Data.Monoid
 
-type Letter a = {
+type Letter a b = {
   letter :: Char
 , meta :: a
-, subtree :: CharTree a
+, id :: b
+, subtree :: CharTree a b
 }
 
 data AllocType = Plus | Minus
 
-type TreeBody a = {
-  chars :: M.Map Int (Letter a)
+type TreeBody a b = {
+  chars :: M.Map Int (Letter a b)
 , allocType :: AllocType
 }
 
-data CharTree a = Leaf | CharTree (TreeBody a)
+data CharTree a b = Leaf | CharTree (TreeBody a b)
 
 data Position = Position (List Int) Int Int -- | (Subtree, p, q)
 
-newCharTree :: forall e a. Eff (random :: RANDOM | e) (CharTree a)
+newCharTree :: forall e a b. Eff (random :: RANDOM | e) (CharTree a b)
 newCharTree = do
     allocDirection <- randomBool
     let allocType = if allocDirection then Plus else Minus
@@ -48,16 +50,19 @@ capacity = 50
 
 getOffset :: forall e. AllocType -> Int -> Int ->
              Eff (random :: RANDOM | e) Int
-getOffset allocType p q = do
+getOffset allocType p q = let p' = if p < 0 then 0 else p
+                              q' = if q > capacity then capacity else q
+                          in
+  do
     n <- kumaraswamy 2.0 5.0
-    let offset = floor $ n * (toNumber (q - p))
+    let offset = floor $ n * (toNumber (q' - p'))
         idx    = case allocType of
-                  Plus  -> p + offset
-                  Minus -> q - offset
+                  Plus  -> p' + offset
+                  Minus -> q' - offset
     pure idx
 
-walkTree :: forall a e. Letter a -> Tuple Int Int -> TreeBody a -> Int ->
-            Eff (random :: RANDOM | e) (CharTree a)
+walkTree :: forall a b e. Letter a b -> Tuple Int Int -> TreeBody a b -> Int ->
+            Eff (random :: RANDOM | e) (CharTree a b)
 walkTree letter coords tree@{chars, allocType} idx =
   case M.lookup idx chars of
     Nothing   -> pure $ CharTree $ tree {chars = M.insert idx letter chars}
@@ -66,8 +71,8 @@ walkTree letter coords tree@{chars, allocType} idx =
       let char' = char {subtree = subtree}
       pure $ CharTree $ tree {chars = M.insert idx char' chars}
 
-insert :: forall a e. Letter a -> List Int -> Tuple Int Int -> CharTree a ->
-          Eff (random :: RANDOM | e) (CharTree a)
+insert :: forall a b e. Letter a b -> List Int -> Tuple Int Int -> CharTree a b ->
+          Eff (random :: RANDOM | e) (CharTree a b)
 insert letter _ _ Leaf = newCharTree >>= case _ of
   (CharTree tree@{chars, allocType}) -> do
     idx <- getOffset allocType 0 capacity
@@ -75,11 +80,27 @@ insert letter _ _ Leaf = newCharTree >>= case _ of
   Leaf -> pure $ Leaf -- this should never happen lol
 
 insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
-  getOffset allocType p q >>= walkTree letter coords tree
+  getOffset allocType p q >>= \idx -> case idx of
+    0 -> case M.lookup idx chars of
+            Just char -> do
+              -- insert the letter as a first element of the bottom subtree,
+              -- with a leaf subtree
+              let char'   = char {subtree = Leaf}
+                  lowestIndex = case char.subtree of
+                    Leaf             -> capacity
+                    (CharTree tree') -> fromMaybe capacity $ _.key <$> M.findMin tree'.chars
+                  insertBound = Tuple 0 lowestIndex
+
+              updatedTree <- insert char' Nil insertBound char.subtree
+              let letter' = letter {subtree = updatedTree}
+
+              pure $ CharTree $ tree {chars = M.insert idx letter' chars}
+            Nothing -> walkTree letter coords tree idx
+    otherwise -> walkTree letter coords tree idx
 
 insert letter (Cons x xs) coords (CharTree tree) = walkTree letter coords tree x
 
-delete :: forall a. List Int -> Int -> CharTree a -> CharTree a
+delete :: forall a b. List Int -> Int -> CharTree a b -> CharTree a b
 delete _ _ Leaf = Leaf
 delete Nil p (CharTree tree@{chars}) = CharTree $ tree {chars = M.delete p chars}
 delete (Cons x xs) p (CharTree tree@{chars}) = case letter of
@@ -88,7 +109,23 @@ delete (Cons x xs) p (CharTree tree@{chars}) = case letter of
                   CharTree $ tree {chars = M.insert x withNewTree chars}
   where letter = M.lookup x chars
 
-print :: forall a. CharTree a -> String
+print :: forall a b. CharTree a b -> String
 print Leaf = ""
 print (CharTree {chars}) = foldMap (\l -> S.singleton l.letter <> print l.subtree) ch
     where ch = M.values chars
+
+findPath' :: forall a b. Eq b => List Int -> b -> CharTree a b -> Maybe (List Int)
+findPath' _ _ Leaf = Nothing
+findPath' path id (CharTree {chars}) =
+  let ch = M.toAscUnfoldable chars
+      walker = (\item (Tuple k v) ->
+        if v.id == id
+          then Just (Cons k path)
+          else findPath' (Cons k path) id v.subtree)
+    in
+foldl walker Nothing (ch :: List (Tuple Int (Letter a b)))
+
+findPath :: forall a b. Eq b => b -> CharTree a b -> Maybe (Tuple (List Int) Int)
+findPath id tree = case findPath' Nil id tree of
+  Nothing   -> Nothing
+  Just path -> L.init path >>= (\p -> (Tuple p) <$> L.last path)

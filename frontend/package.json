@@ -17,5 +17,9 @@
     "purs-loader": "^3.1.2",
     "webpack": "^3.8.1",
     "webpack-dev-server": "^2.9.3"
+  },
+  "dependencies": {
+    "uuid": "^3.1.0",
+    "uuid-validate": "0.0.2"
   }
 }
