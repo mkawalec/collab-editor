@@ -23,7 +23,7 @@ import LSEQ as L
 import Test.QuickCheck ((===), (/==), Result(..))
 import Test.Spec (pending, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import Test.Spec.QuickCheck (QCRunnerEffects, quickCheck)
+import Test.Spec.QuickCheck (QCRunnerEffects, quickCheck, quickCheck')
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (RunnerEffects, run)
 
@@ -42,7 +42,7 @@ main = run [consoleReporter] do
     it "inserts arbitrary strings character by character" do
       emptyTree <- liftEff $ newCharTree
 
-      quickCheck \str -> do
+      quickCheck' 666 \str -> do
         let chars = A.zip (S.toCharArray str) (A.range 0 $ S.length str)
             letters = map (\(Tuple c id) -> makeLetter c id) chars
             charsWithPrevious = [Nothing] <> map Just letters
