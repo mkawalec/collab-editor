@@ -52,7 +52,7 @@ main = run [consoleReporter] do
                 Just l' -> case findPath l'.id tree of
                   Nothing -> trace "Didn't find a path" \_ -> tree
                   -- we need to define a lens to zoom in on this fragment
-                  Just (Tuple path id) -> unsafePerformEff $ insert l path (Tuple id (id)) tree
+                  Just (Tuple path id) -> unsafePerformEff $ insert l path (Tuple id (id + 1)) tree
               ) emptyTree $ A.zip letters charsWithPrevious
 
         let a = unsafePerformEff $ case L.print result /= str of

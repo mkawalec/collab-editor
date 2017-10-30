@@ -64,13 +64,13 @@ getOffset allocType p q = let p' = if p < 0 then 0 else p
                   Minus -> q' - offset
     pure idx
 
-walkTree :: forall a b e. Letter a b -> Tuple Int Int -> TreeBody a b -> Int ->
+walkTree :: forall a b e. Letter a b -> Tuple Int Int -> TreeBody a b -> Int -> List Int ->
             Eff (random :: RANDOM | e) (CharTree a b)
-walkTree letter coords tree@{chars, allocType} idx =
+walkTree letter coords tree@{chars, allocType} idx xs =
   case M.lookup idx chars of
     Nothing   -> pure $ CharTree $ tree {chars = M.insert idx letter chars}
     Just char -> do
-      subtree <- insert letter Nil coords char.subtree
+      subtree <- insert letter xs coords char.subtree
       let char' = char {subtree = subtree}
       pure $ CharTree $ tree {chars = M.insert idx char' chars}
 
@@ -98,10 +98,10 @@ insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
               let letter' = letter {subtree = updatedTree}
 
               pure $ CharTree $ tree {chars = M.insert idx letter' chars}
-            Nothing -> walkTree letter coords tree idx
-    otherwise -> walkTree letter coords tree idx
+            Nothing -> walkTree letter coords tree idx Nil
+    otherwise -> walkTree letter coords tree idx Nil
 
-insert letter (Cons x xs) coords (CharTree tree) = walkTree letter coords tree x
+insert letter (Cons x xs) coords (CharTree tree) = walkTree letter coords tree x xs
 
 delete :: forall a b. List Int -> Int -> CharTree a b -> CharTree a b
 delete _ _ Leaf = Leaf
@@ -134,9 +134,9 @@ findPath id tree = case findPath' Nil id tree of
   Just path -> L.init path >>= (\p -> (Tuple p) <$> L.last path)
 
 
-draw :: forall a b. Int -> CharTree a b -> String
+draw :: forall a b. Show b => Int -> CharTree a b -> String
 draw _ Leaf = ""
 draw indent (CharTree {chars}) =
-    foldl (\acc (Tuple k v) -> acc <> indentStr <> "|- " <> S.singleton v.letter <> "\n" <> draw (indent + 1) v.subtree) "" values
+    foldl (\acc (Tuple k v) -> acc <> indentStr <> "|- " <> S.singleton v.letter <> ", " <> show v.id <> "\n" <> draw (indent + 1) v.subtree) "" values
   where values = M.toAscUnfoldable chars :: List (Tuple Int (Letter a b))
         indentStr = foldl (\s p -> s <> p) "" $ replicate indent "  "
