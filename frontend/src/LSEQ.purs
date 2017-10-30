@@ -13,6 +13,9 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String as S
 import Data.Tuple (Tuple(..))
 import Math (pow)
+import Control.Alt ((<|>))
+
+import Debug.Trace (trace, traceShow)
 
 type Letter a b = {
   letter :: Char
@@ -118,10 +121,10 @@ findPath' :: forall a b. Eq b => List Int -> b -> CharTree a b -> Maybe (List In
 findPath' _ _ Leaf = Nothing
 findPath' path id (CharTree {chars}) =
   let ch = M.toAscUnfoldable chars
-      walker = (\item (Tuple k v) ->
+      walker = (\acc (Tuple k v) ->
         if v.id == id
           then Just (Cons k path)
-          else findPath' (Cons k path) id v.subtree)
+          else acc <|> findPath' (Cons k path) id v.subtree)
     in
 foldl walker Nothing (ch :: List (Tuple Int (Letter a b)))
 

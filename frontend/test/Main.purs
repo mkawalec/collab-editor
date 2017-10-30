@@ -25,6 +25,8 @@ import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (RunnerEffects, run)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
 
+import Debug.Trace (trace, traceShow)
+
 makeLetter :: Char -> Int -> Letter Unit Int
 makeLetter l id = {letter: l, id: id, meta: unit, subtree: Leaf}
 
@@ -48,7 +50,7 @@ main = run [consoleReporter] do
               \tree (Tuple l prev) -> case prev of
                 Nothing -> unsafePerformEff $ insert l Nil (Tuple 0 capacity) tree
                 Just l' -> case findPath l'.id tree of
-                  Nothing -> tree
+                  Nothing -> trace "Didn't find a path" \_ -> tree
                   -- we need to define a lens to zoom in on this fragment
                   Just (Tuple path id) -> unsafePerformEff $ insert l path (Tuple id (id + 1)) tree
               ) emptyTree $ A.zip letters charsWithPrevious
