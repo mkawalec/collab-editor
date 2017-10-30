@@ -70,6 +70,15 @@ insert letter _ _ Leaf = newCharTree >>= case _ of
   Leaf -> pure $ Leaf -- this should never happen lol
 
 insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
-  getOffset allocType p q >>= walkTree letter coords tree 
+  getOffset allocType p q >>= walkTree letter coords tree
 
 insert letter (Cons x xs) coords (CharTree tree) = walkTree letter coords tree x
+
+delete :: forall a. List Int -> Int -> CharTree a -> CharTree a
+delete _ _ Leaf = Leaf
+delete Nil p (CharTree tree@{chars}) = CharTree $ tree {chars = M.delete p chars}
+delete (Cons x xs) p (CharTree tree@{chars}) = case letter of
+    Nothing -> CharTree tree
+    Just l  -> let withNewTree = l {subtree = delete xs p l.subtree} in
+                  CharTree $ tree {chars = M.insert x withNewTree chars}
+  where letter = M.lookup x chars
