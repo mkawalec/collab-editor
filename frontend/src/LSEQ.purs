@@ -5,11 +5,13 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Random (RANDOM, randomBool, random)
 import Data.Int (floor, toNumber)
-import Data.List (List(..))
+import Data.List (List(..), foldMap)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Math (pow)
+import Data.String as S
+import Data.Monoid
 
 type Letter a = {
   letter :: Char
@@ -44,7 +46,8 @@ kumaraswamy a b =
 capacity :: Int
 capacity = 50
 
-getOffset :: forall e. AllocType -> Int -> Int -> Eff (random :: RANDOM | e) Int
+getOffset :: forall e. AllocType -> Int -> Int ->
+             Eff (random :: RANDOM | e) Int
 getOffset allocType p q = do
     n <- kumaraswamy 2.0 5.0
     let offset = floor $ n * (toNumber (q - p))
@@ -53,7 +56,8 @@ getOffset allocType p q = do
                   Minus -> q - offset
     pure idx
 
-walkTree :: forall a e. Letter a -> Tuple Int Int -> TreeBody a -> Int -> Eff (random :: RANDOM | e) (CharTree a)
+walkTree :: forall a e. Letter a -> Tuple Int Int -> TreeBody a -> Int ->
+            Eff (random :: RANDOM | e) (CharTree a)
 walkTree letter coords tree@{chars, allocType} idx =
   case M.lookup idx chars of
     Nothing   -> pure $ CharTree $ tree {chars = M.insert idx letter chars}
@@ -62,7 +66,8 @@ walkTree letter coords tree@{chars, allocType} idx =
       let char' = char {subtree = subtree}
       pure $ CharTree $ tree {chars = M.insert idx char' chars}
 
-insert :: forall a e. Letter a -> List Int -> Tuple Int Int -> CharTree a -> Eff (random :: RANDOM | e) (CharTree a)
+insert :: forall a e. Letter a -> List Int -> Tuple Int Int -> CharTree a ->
+          Eff (random :: RANDOM | e) (CharTree a)
 insert letter _ _ Leaf = newCharTree >>= case _ of
   (CharTree tree@{chars, allocType}) -> do
     idx <- getOffset allocType 0 capacity
@@ -82,3 +87,8 @@ delete (Cons x xs) p (CharTree tree@{chars}) = case letter of
     Just l  -> let withNewTree = l {subtree = delete xs p l.subtree} in
                   CharTree $ tree {chars = M.insert x withNewTree chars}
   where letter = M.lookup x chars
+
+print :: forall a. CharTree a -> String
+print Leaf = ""
+print (CharTree {chars}) = foldMap (\l -> S.singleton l.letter <> print l.subtree) ch
+    where ch = M.values chars
