@@ -1,2 +1,2 @@
-const {main} = require('./Main.purs');
+const main = require('./Main.purs').main;
 main();
