@@ -70,21 +70,21 @@ walkTree letter coords tree@{chars, allocType} idx xs =
   case M.lookup idx chars of
     Nothing   -> pure $ CharTree $ tree {chars = M.insert idx letter chars}
     Just char -> do
-      subtree <- insert letter xs coords char.subtree
+      subtree <- insert' letter xs coords char.subtree
       let char' = char {subtree = subtree}
       pure $ CharTree $ tree {chars = M.insert idx char' chars}
 
-insert :: forall a b e. Letter a b -> List Int -> Tuple Int Int -> CharTree a b ->
+insert' :: forall a b e. Letter a b -> List Int -> Tuple Int Int -> CharTree a b ->
           Eff (random :: RANDOM | e) (CharTree a b)
-insert letter _ _ Leaf = newCharTree >>= case _ of
+insert' letter _ _ Leaf = newCharTree >>= case _ of
   (CharTree tree@{chars, allocType}) -> do
     idx <- getOffset allocType 0 capacity
     pure $ CharTree $ tree {chars = M.insert idx letter chars}
   Leaf -> trace "never?" \_ -> pure $ Leaf -- this should never happen lol
 
-insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
-  getOffset allocType p q >>= \idx -> case idx of
-    0 -> case M.lookup idx chars of
+insert' letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
+  getOffset allocType p q >>= \idx -> case idx == 0 && p == 0 && q == 0 of
+    true -> case M.lookup idx chars of
             Just char -> trace "rotating" \_ -> do
               -- insert the letter as a first element of the bottom subtree,
               -- with a leaf subtree
@@ -94,14 +94,20 @@ insert letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
                     (CharTree tree') -> fromMaybe capacity $ _.key <$> M.findMin tree'.chars
                   insertBound = Tuple 0 lowestIndex
 
-              updatedTree <- insert char' Nil insertBound char.subtree
+              updatedTree <- insert' char' Nil insertBound char.subtree
               let letter' = letter {subtree = updatedTree}
 
               pure $ CharTree $ tree {chars = M.insert idx letter' chars}
             Nothing -> walkTree letter coords tree idx Nil
     otherwise -> walkTree letter coords tree idx Nil
 
-insert letter (Cons x xs) coords (CharTree tree) = walkTree letter coords tree x xs
+insert' letter (Cons x xs) coords (CharTree tree) = walkTree letter coords tree x xs
+
+insert :: forall a b e. Letter a b -> List Int -> Tuple Int Int -> CharTree a b ->
+          Eff (random :: RANDOM | e) (CharTree a b)
+insert l path (Tuple p q) tree = let p' = if p < 0 then 0 else p
+                                     q' = if q > capacity then capacity else q
+                                 in insert' l path (Tuple p' q') tree
 
 delete :: forall a b. List Int -> Int -> CharTree a b -> CharTree a b
 delete _ _ Leaf = Leaf
