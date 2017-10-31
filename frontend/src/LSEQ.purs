@@ -8,6 +8,7 @@ import Control.Monad.Eff.Random (RANDOM, randomBool, random)
 import Data.Array (replicate)
 import Data.Foldable (foldl)
 import Data.Int (floor, toNumber)
+import Data.Int.Bits (xor)
 import Data.List (List(..), foldMap)
 import Data.List as L
 import Data.Map as M
@@ -53,8 +54,8 @@ capacity = 50
 
 getOffset :: forall e. AllocType -> Int -> Int ->
              Eff (random :: RANDOM | e) Int
-getOffset allocType p q = let p' = if p < 0 then 0 else p
-                              q' = if q > capacity then capacity else q
+getOffset allocType p q = let p' = inBounds p
+                              q' = inBounds q
                           in
   do
     n <- kumaraswamy 2.0 5.0
@@ -80,21 +81,21 @@ insert' letter _ _ Leaf = newCharTree >>= case _ of
   (CharTree tree@{chars, allocType}) -> do
     idx <- getOffset allocType 0 capacity
     pure $ CharTree $ tree {chars = M.insert idx letter chars}
-  Leaf -> trace "never?" \_ -> pure $ Leaf -- this should never happen lol
+  Leaf -> pure $ Leaf -- this should never happen lol
 
 insert' letter Nil coords@(Tuple p q) (CharTree tree@{chars, allocType}) =
   getOffset allocType p q >>= \idx -> case idx == 0 && p == 0 && q == 0 of
     true -> case M.lookup idx chars of
-            Just char -> trace "rotating" \_ -> do
+            Just char -> do
               -- insert the letter as a first element of the bottom subtree,
               -- with a leaf subtree
               let char'   = char {subtree = Leaf}
                   lowestIndex = case char.subtree of
                     Leaf             -> capacity
                     (CharTree tree') -> fromMaybe capacity $ _.key <$> M.findMin tree'.chars
-                  insertBound = Tuple 0 lowestIndex
+                  insertBound = Tuple 0 (lowestIndex - 1)
 
-              updatedTree <- insert' char' Nil insertBound char.subtree
+              updatedTree <- insert char' Nil insertBound char.subtree
               let letter' = letter {subtree = updatedTree}
 
               pure $ CharTree $ tree {chars = M.insert idx letter' chars}
@@ -105,9 +106,13 @@ insert' letter (Cons x xs) coords (CharTree tree) = walkTree letter coords tree 
 
 insert :: forall a b e. Letter a b -> List Int -> Tuple Int Int -> CharTree a b ->
           Eff (random :: RANDOM | e) (CharTree a b)
-insert l path (Tuple p q) tree = let p' = if p < 0 then 0 else p
-                                     q' = if q > capacity then capacity else q
+insert l path (Tuple p q) tree = let p' = inBounds p
+                                     q' = inBounds q
                                  in insert' l path (Tuple p' q') tree
+
+inBounds :: Int -> Int
+inBounds x = let lower = if x < 0 then 0 else x
+             in if lower > capacity then capacity else lower
 
 delete :: forall a b. List Int -> Int -> CharTree a b -> CharTree a b
 delete _ _ Leaf = Leaf
@@ -143,6 +148,6 @@ findPath id tree = case L.reverse <$> findPath' Nil id tree of
 draw :: forall a b. Show b => Int -> CharTree a b -> String
 draw _ Leaf = ""
 draw indent (CharTree {chars}) =
-    foldl (\acc (Tuple k v) -> acc <> indentStr <> "|- " <> S.singleton v.letter <> ", " <> show v.id <> "\n" <> draw (indent + 1) v.subtree) "" values
+    foldl (\acc (Tuple k v) -> acc <> indentStr <> "|- " <> S.singleton v.letter <> ", " <> show v.id <> " at idx " <> show k <> "\n" <> draw (indent + 1) v.subtree) "" values
   where values = M.toAscUnfoldable chars :: List (Tuple Int (Letter a b))
         indentStr = foldl (\s p -> s <> p) "" $ replicate indent "  "
