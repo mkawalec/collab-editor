@@ -16,11 +16,6 @@ import LSEQ.Types (CharTree(..), Container, TreeBody, capacity)
 import LSEQ.Helpers (getOffset, inBounds, newCharTree)
 
 
--- TODO
---
--- [x] - move into separate modules
--- [ ] - move to foldable/traversable instances
-
 walkTree :: forall a b e. Container a b -> Tuple Int Int -> TreeBody a b -> Int -> List Int ->
             Eff (random :: RANDOM | e) (CharTree a b)
 walkTree item coords tree@{items, allocType} idx xs =

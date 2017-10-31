@@ -24,8 +24,16 @@ data Position = Position (List Int) Int Int -- | (Subtree, p, q)
 capacity :: Int
 capacity = 50
 
+class CharTreeDisplay a where
+  displayElement :: a -> String
+
 instance functorCharTree :: Functor (CharTree a) where
   map f Leaf = Leaf
   map f (CharTree tree@{items}) = CharTree tree {
     items = map (\i -> i {payload = f i.payload, subtree = map f i.subtree}) items
   }
+
+-- TODO:
+-- [ ] Add a foldable instance
+-- [ ] Add a traversable instance
+-- [ ] Move utility functions to these instances

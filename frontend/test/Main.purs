@@ -26,10 +26,15 @@ import Control.Monad (whenM)
 import LSEQ as L
 import LSEQ.Utility as LU
 import LSEQ.Helpers (newCharTree)
-import LSEQ.Types (Letter, CharTree(..), capacity)
+import LSEQ.Types (Container, CharTree(..), capacity, class CharTreeDisplay, displayElement)
 
-makeLetter :: Char -> Int -> Letter Unit Int
-makeLetter l id = {letter: l, id: id, meta: unit, subtree: Leaf}
+makeLetter :: Char -> Int -> Container Int OurChar
+makeLetter l id = {id: id, payload: OurChar l, subtree: Leaf}
+
+newtype OurChar = OurChar Char
+
+instance displayChar :: CharTreeDisplay OurChar where
+  displayElement (OurChar c) = S.singleton c
 
 main :: Eff (RunnerEffects (QCRunnerEffects (random :: RANDOM))) Unit
 main = run [consoleReporter] do

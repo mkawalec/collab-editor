@@ -5,7 +5,7 @@ module LSEQ.Utility (
 ) where
 
 import Prelude
-import LSEQ.Types (CharTree(..), Container)
+import LSEQ.Types (CharTree(..), Container, class CharTreeDisplay, displayElement)
 
 import Data.List (List(..), foldMap)
 import Data.Tuple (Tuple(..))
@@ -17,10 +17,10 @@ import Control.Alt ((<|>))
 import Data.Foldable (foldl)
 import Data.Array (replicate)
 
-print :: forall a b. Show b => CharTree a b -> String
+print :: forall a b. CharTreeDisplay b => CharTree a b -> String
 print Leaf = ""
 print (CharTree {items}) = let containers = M.values items in
-  foldMap (\l -> show l.payload <> print l.subtree) containers
+  foldMap (\l -> displayElement l.payload <> print l.subtree) containers
 
 findPath' :: forall a b. Eq a => List Int -> a -> CharTree a b -> Maybe (List Int)
 findPath' _ _ Leaf = Nothing
@@ -39,9 +39,9 @@ findPath id tree = case L.reverse <$> findPath' Nil id tree of
   Just path -> L.init path >>= (\p -> (Tuple p) <$> L.last path)
 
 
-draw :: forall a b. Show a => Show b => Int -> CharTree a b -> String
+draw :: forall a b. Show a => CharTreeDisplay b => Int -> CharTree a b -> String
 draw _ Leaf = ""
 draw indent (CharTree {items}) =
-    foldl (\acc (Tuple k v) -> acc <> indentStr <> "|- " <> show v.payload <> ", " <> show v.id <> " at idx " <> show k <> "\n" <> draw (indent + 1) v.subtree) "" values
+    foldl (\acc (Tuple k v) -> acc <> indentStr <> "|- " <> displayElement v.payload <> ", " <> show v.id <> " at idx " <> show k <> "\n" <> draw (indent + 1) v.subtree) "" values
   where values = M.toAscUnfoldable items :: List (Tuple Int (Container a b))
         indentStr = foldl (\s p -> s <> p) "" $ replicate indent "  "
