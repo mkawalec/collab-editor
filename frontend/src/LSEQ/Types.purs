@@ -1,19 +1,19 @@
 module LSEQ.Types where
 
-import Data.Map (Map)
+import Prelude
 import Data.List (List)
+import Data.Map (Map)
 
-type Letter a b = {
-  letter :: Char
-, meta :: a
-, id :: b
+type Container a b = {
+  id :: a
+, payload :: b
 , subtree :: CharTree a b
 }
 
 data AllocType = Plus | Minus
 
 type TreeBody a b = {
-  chars :: Map Int (Letter a b)
+  items :: Map Int (Container a b)
 , allocType :: AllocType
 }
 
@@ -23,3 +23,9 @@ data Position = Position (List Int) Int Int -- | (Subtree, p, q)
 
 capacity :: Int
 capacity = 50
+
+instance functorCharTree :: Functor (CharTree a) where
+  map f Leaf = Leaf
+  map f (CharTree tree@{items}) = CharTree tree {
+    items = map (\i -> i {payload = f i.payload, subtree = map f i.subtree}) items
+  }

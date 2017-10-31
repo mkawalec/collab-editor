@@ -8,14 +8,15 @@ import Data.Map as M
 import Math (pow)
 import Data.Int (floor, toNumber)
 
-import LSEQ.Types
+import LSEQ.Types (AllocType(..), CharTree(..), capacity)
+
 
 newCharTree :: forall e a b. Eff (random :: RANDOM | e) (CharTree a b)
 newCharTree = do
     allocDirection <- randomBool
     let allocType = if allocDirection then Plus else Minus
     pure $ CharTree {
-        chars: M.empty
+        items: M.empty
       , allocType: allocType}
 
 -- |A kumaraswamy distribution, chosen for a good look and a simple inverse CDF
