@@ -9,7 +9,7 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Random (RANDOM)
 import Data.List (List(..))
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 
 import LSEQ.Types (CharTree(..), Container, TreeBody, capacity)
@@ -47,7 +47,7 @@ insertAtOffset item tree@{items, allocType} idx = case M.lookup idx items of
   Nothing -> pure $ CharTree $ tree {items = M.insert idx item items}
 
 
--- TODO: return an index at which insertion took place
+-- TODO: return a path  at which insertion took place
 insert' :: forall a b e. Container a b -> List Int -> Tuple Int Int -> CharTree a b ->
           Eff (random :: RANDOM | e) (CharTree a b)
 insert' item (Cons x xs) coords Leaf = newCharTree >>= walkTree item coords x xs
