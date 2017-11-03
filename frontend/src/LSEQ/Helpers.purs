@@ -8,14 +8,14 @@ import Data.Map as M
 import Math (pow)
 import Data.Int (floor, toNumber)
 
-import LSEQ.Types (AllocType(..), CharTree(..), capacity)
+import LSEQ.Types (AllocType(..), TreeBody, capacity)
 
 
-newCharTree :: forall e a b. Eff (random :: RANDOM | e) (CharTree a b)
+newCharTree :: forall e a b. Eff (random :: RANDOM | e) (TreeBody a b)
 newCharTree = do
     allocDirection <- randomBool
     let allocType = if allocDirection then Plus else Minus
-    pure $ CharTree {
+    pure $ {
         items: M.empty
       , allocType: allocType}
 

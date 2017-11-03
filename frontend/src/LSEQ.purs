@@ -16,45 +16,50 @@ import LSEQ.Types (CharTree(..), Container, TreeBody, capacity)
 import LSEQ.Helpers (getOffset, inBounds, newCharTree)
 
 
-walkTree :: forall a b e. Container a b -> Tuple Int Int -> TreeBody a b -> Int -> List Int ->
+walkTree :: forall a b e. Container a b -> Tuple Int Int -> Int -> List Int -> TreeBody a b ->
             Eff (random :: RANDOM | e) (CharTree a b)
-walkTree item coords tree@{items, allocType} idx xs =
+walkTree item coords idx xs tree@{items, allocType} =
   case M.lookup idx items of
-    Nothing   -> pure $ CharTree $ tree {items = M.insert idx item items}
+    Nothing   -> do --pure $ CharTree $ tree {items = M.insert idx item items}
+      subtree <- CharTree <$> newCharTree >>= insert' item xs coords
+      let container = {id: Nothing, payload: Nothing, subtree: subtree}
+      pure $ CharTree $ tree {items = M.insert idx container items}
     Just char -> do
       subtree <- insert' item xs coords char.subtree
       let char' = char {subtree = subtree}
       pure $ CharTree $ tree {items = M.insert idx char' items}
 
+insertAtOffset :: forall a b e. Container a b -> TreeBody a b -> Int ->
+                  Eff (random :: RANDOM | e) (CharTree a b)
+insertAtOffset item tree@{items, allocType} 0 = case M.lookup 0 items of
+  Just i -> do
+    newSubtree <- insert' item Nil (Tuple 1 capacity) i.subtree
+    pure $ CharTree $ tree {items = M.insert 0 (i {subtree = newSubtree}) items}
+  Nothing -> do
+    tree' <- CharTree <$> newCharTree >>= insert item Nil (Tuple 1 capacity)
+    let newContainer = {id: Nothing, payload: Nothing, subtree: tree'}
+    pure $ CharTree $ tree {items = M.insert 0 newContainer items}
+
+insertAtOffset item tree@{items, allocType} idx = case M.lookup idx items of
+  Just i -> do
+    subtree <- insert item Nil (Tuple 1 capacity) i.subtree
+    pure $ CharTree $ tree {items = M.insert idx (i {subtree = subtree}) items}
+  Nothing -> pure $ CharTree $ tree {items = M.insert idx item items}
+
+
+-- TODO: return an index at which insertion took place
 insert' :: forall a b e. Container a b -> List Int -> Tuple Int Int -> CharTree a b ->
           Eff (random :: RANDOM | e) (CharTree a b)
-insert' item _ _ Leaf = newCharTree >>= case _ of
-  (CharTree tree@{items, allocType}) -> do
-    idx <- getOffset allocType 0 capacity
-    pure $ CharTree $ tree {items = M.insert idx item items}
-  Leaf -> pure $ Leaf -- this should never happen lol
+insert' item (Cons x xs) coords Leaf = newCharTree >>= walkTree item coords x xs
+insert' item (Cons x xs) coords (CharTree tree) = walkTree item coords x xs tree
 
-insert' item Nil coords@(Tuple p q) (CharTree tree@{items, allocType}) =
-  getOffset allocType p q >>= \idx -> case idx == 0 && p == 0 && q == 0 of
-    true -> case M.lookup idx items of
-            Just char -> do
-              -- left side tree rotation
-              -- insert the item as a first element of the bottom subtree,
-              -- with a leaf subtree
-              let char'   = char {subtree = Leaf}
-                  lowestIndex = case char.subtree of
-                    Leaf             -> capacity
-                    (CharTree tree') -> fromMaybe capacity $ _.key <$> M.findMin tree'.items
-                  insertBound = Tuple 0 (lowestIndex - 1)
-
-              updatedTree <- insert char' Nil insertBound char.subtree
-              let item' = item {subtree = updatedTree}
-
-              pure $ CharTree $ tree {items = M.insert idx item' items}
-            Nothing -> walkTree item coords tree idx Nil
-    otherwise -> walkTree item coords tree idx Nil
-
-insert' item (Cons x xs) coords (CharTree tree) = walkTree item coords tree x xs
+insert' item Nil coords@(Tuple p q) t = case t of
+  Leaf -> do
+    tree <- newCharTree
+    offset <- getOffset tree.allocType p q
+    insertAtOffset item tree offset
+  (CharTree tree@{items, allocType}) ->
+    getOffset allocType p q >>= insertAtOffset item tree
 
 insert :: forall a b e. Container a b -> List Int -> Tuple Int Int -> CharTree a b ->
           Eff (random :: RANDOM | e) (CharTree a b)

@@ -3,10 +3,11 @@ module LSEQ.Types where
 import Prelude
 import Data.List (List)
 import Data.Map (Map)
+import Data.Maybe (Maybe)
 
 type Container a b = {
-  id :: a
-, payload :: b
+  id :: Maybe a
+, payload :: Maybe b
 , subtree :: CharTree a b
 }
 
@@ -30,7 +31,7 @@ class CharTreeDisplay a where
 instance functorCharTree :: Functor (CharTree a) where
   map f Leaf = Leaf
   map f (CharTree tree@{items}) = CharTree tree {
-    items = map (\i -> i {payload = f i.payload, subtree = map f i.subtree}) items
+    items = map (\i -> i {payload = map f i.payload, subtree = map f i.subtree}) items
   }
 
 -- TODO:

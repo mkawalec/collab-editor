@@ -29,7 +29,7 @@ import LSEQ.Helpers (newCharTree)
 import LSEQ.Types (Container, CharTree(..), capacity, class CharTreeDisplay, displayElement)
 
 makeLetter :: Char -> Int -> Container Int OurChar
-makeLetter l id = {id: id, payload: OurChar l, subtree: Leaf}
+makeLetter l id = {id: Just id, payload: Just (OurChar l), subtree: Leaf}
 
 newtype OurChar = OurChar Char
 
@@ -41,18 +41,18 @@ main = run [consoleReporter] do
   describe "LSEQ" do
     it "inserts a single character" do
 
-      emptyTree <- liftEff $ newCharTree
+      emptyTree <- liftEff $ CharTree <$> newCharTree
       withA <- liftEff $ L.insert (makeLetter 'a' 0) Nil (Tuple 1 1) emptyTree
       LU.print withA `shouldEqual` "a"
 
     it "inserts arbitrary strings character by character" do
-      emptyTree <- liftEff $ newCharTree
+      emptyTree <- liftEff $ CharTree <$> newCharTree
 
-      quickCheck \str -> do
+      quickCheck' 666 \str -> do
         let chars = A.zip (S.toCharArray str) (A.range 0 $ S.length str)
             letters = map (\(Tuple c id) -> makeLetter c id) chars
             charsWithPrevious = [Nothing] <> map Just letters
-            result = foldl (
+            result = scanl (
               \tree (Tuple l prev) -> case prev of
                 Nothing -> unsafePerformEff $ L.insert l Nil (Tuple 0 capacity) tree
                 Just l' -> case LU.findPath l'.id tree of
@@ -60,11 +60,14 @@ main = run [consoleReporter] do
                   -- we need to define a lens to zoom in on this fragment
                   Just (Tuple path id) -> unsafePerformEff $ L.insert l path (Tuple (id) (id+1)) tree
               ) emptyTree $ A.zip letters charsWithPrevious
+            lastR = fromMaybe emptyTree $ A.last result
 
-        LU.print result === str
+        let a = unsafePerformEff $ whenM (pure $ LU.print lastR /= str)
+                                            (log $ foldl (\acc r -> acc <> LU.draw 0 r <> "\n") "\n\n" result)
+        LU.print lastR === str
 
     it "inserts arbitrary strings character by character from the end" do
-      emptyTree <- liftEff $ newCharTree
+      emptyTree <- liftEff $ CharTree <$> newCharTree
 
       quickCheck' 666 \str -> do
         let chars = A.zip (A.reverse $ S.toCharArray str) (A.range 0 $ S.length str)
