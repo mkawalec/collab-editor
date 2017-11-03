@@ -26,7 +26,7 @@ import Control.Monad (whenM)
 import LSEQ as L
 import LSEQ.Utility as LU
 import LSEQ.Helpers (newCharTree)
-import LSEQ.Types (Container, CharTree(..), capacity, class CharTreeDisplay, displayElement)
+import LSEQ.Types (Container, CharTree(..), Position(..), class CharTreeDisplay, displayElement)
 
 makeLetter :: Char -> Int -> Container Int OurChar
 makeLetter l id = {id: Just id, payload: Just (OurChar l), subtree: Leaf}
@@ -42,7 +42,7 @@ main = run [consoleReporter] do
     it "inserts a single character" do
 
       emptyTree <- liftEff $ CharTree <$> newCharTree
-      withA <- liftEff $ L.insert (makeLetter 'a' 0) Nil (Tuple 1 1) emptyTree
+      withA <- liftEff $ L.insert (makeLetter 'a' 0) Nil (Tuple (N 1) (N 1)) emptyTree
       LU.print withA `shouldEqual` "a"
 
     it "inserts arbitrary strings character by character" do
@@ -54,11 +54,11 @@ main = run [consoleReporter] do
             charsWithPrevious = [Nothing] <> map Just letters
             result = scanl (
               \tree (Tuple l prev) -> case prev of
-                Nothing -> unsafePerformEff $ L.insert l Nil (Tuple 0 capacity) tree
+                Nothing -> unsafePerformEff $ L.insert l Nil (Tuple (N 0) End) tree
                 Just l' -> case LU.findPath l'.id tree of
                   Nothing -> tree
                   -- we need to define a lens to zoom in on this fragment
-                  Just (Tuple path id) -> unsafePerformEff $ L.insert l path (Tuple (id) (id+1)) tree
+                  Just (Tuple path id) -> unsafePerformEff $ L.insert l path (Tuple (N id) (N $ id+1)) tree
               ) emptyTree $ A.zip letters charsWithPrevious
             lastR = fromMaybe emptyTree $ A.last result
 
@@ -75,11 +75,11 @@ main = run [consoleReporter] do
             charsWithPrevious = [Nothing] <> map Just letters
             result = scanl (
               \tree (Tuple l prev) -> case prev of
-                Nothing -> unsafePerformEff $ L.insert l Nil (Tuple 0 capacity) tree
+                Nothing -> unsafePerformEff $ L.insert l Nil (Tuple (N 0) End) tree
                 Just l' -> case LU.findPath l'.id tree of
                   Nothing -> tree
                   -- we need to define a lens to zoom in on this fragment
-                  Just (Tuple path id) -> unsafePerformEff $ L.insert l path (Tuple (id-1) (id-1)) tree
+                  Just (Tuple path id) -> unsafePerformEff $ L.insert l path (Tuple (N $ id-1) (N $ id-1)) tree
               ) emptyTree $ A.zip letters charsWithPrevious
             lastR = fromMaybe emptyTree $ A.last result
         let a = unsafePerformEff $ whenM (pure $ LU.print lastR /= str)
