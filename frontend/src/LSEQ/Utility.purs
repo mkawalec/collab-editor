@@ -5,7 +5,8 @@ module LSEQ.Utility (
 ) where
 
 import Prelude
-import LSEQ.Types (CharTree(..), Container, class CharTreeDisplay, displayElement)
+import LSEQ.Types (CharTree(..), Container,
+  class CharTreeDisplay, displayElement)
 
 import Data.List (List(..), foldMap)
 import Data.Tuple (Tuple(..))
@@ -40,7 +41,6 @@ findPath :: forall a b. Eq a => Maybe a -> CharTree a b -> Maybe (Tuple (List In
 findPath id tree = case L.reverse <$> findPath' Nil id tree of
   Nothing   -> Nothing
   Just path -> L.init path >>= (\p -> (Tuple p) <$> L.last path)
-
 
 draw :: forall a b. Show a => CharTreeDisplay b => Int -> CharTree a b -> String
 draw _ Leaf = ""

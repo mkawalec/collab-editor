@@ -11,8 +11,10 @@ type Container a b = {
 }
 
 data AllocType = Plus | Minus
+derive instance eqAllocType :: Eq AllocType
 
 data Position = N Int | End
+derive instance eqPosition :: Eq Position
 
 type TreeBody a b = {
   items :: Map Int (Container a b)
@@ -24,11 +26,7 @@ data CharTree a b = Leaf | CharTree (TreeBody a b)
 class CharTreeDisplay a where
   displayElement :: a -> String
 
-instance functorCharTree :: Functor (CharTree a) where
-  map f Leaf = Leaf
-  map f (CharTree tree@{items}) = CharTree tree {
-    items = map (\i -> i {payload = map f i.payload, subtree = map f i.subtree}) items
-  }
+derive instance functorCharTree :: Functor (CharTree a)
 
 -- TODO:
 -- [ ] Add a foldable instance
