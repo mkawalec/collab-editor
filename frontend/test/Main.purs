@@ -61,7 +61,7 @@ main = run [consoleReporter] do
               \(Tuple tree prev) l -> case prev of
                 Nothing -> bimap id Just $ unsafePerformEff $ L.insert l Nil (Tuple (N 0) End) tree
                 Just path -> case pathToPos path of
-                  Just (Tuple path' x) -> bimap id Just $ unsafePerformEff $ L.insert l path' (Tuple (N x) (N $ x+1)) tree
+                  Just (Tuple path' x) -> bimap id Just $ unsafePerformEff $ L.insert l path' (Tuple (N x) End) tree
                   Nothing -> trace "can't find path" \_ -> (Tuple tree Nothing)
               ) (Tuple emptyTree Nothing) $ letters
             lastR = fromMaybe emptyTree $ A.last result
