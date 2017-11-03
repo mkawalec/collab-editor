@@ -12,14 +12,16 @@ import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map as M
 import Data.Bifunctor (bimap)
-import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
+import Data.Maybe (Maybe(..), isJust)
+import Data.Tuple (Tuple(..), snd)
 
 import LSEQ.Types (CharTree(..), Container, TreeBody, Position(..))
 import LSEQ.Helpers (getOffset, newCharTree)
 
 type Path = List Int
 
+-- |Walks through a tree, creating nodes as neccessary and noting the path
+--  that has been walked
 walkTree :: forall a b e. Container a b -> Tuple Position Position ->
             Int -> Path -> Int -> Path -> TreeBody a b ->
             Eff (random :: RANDOM | e) (Tuple (CharTree a b) Path)
@@ -85,10 +87,23 @@ insert :: forall a b e. Container a b -> Path ->
 insert item path coords tree =
   bimap id L.reverse <$> insert' item path coords 40 Nil tree
 
+isSubtreeEmpty :: forall a b. CharTree a b -> Boolean
+isSubtreeEmpty Leaf               = true
+isSubtreeEmpty (CharTree {items}) =
+  let containers = (map snd $ M.toUnfoldable items) :: List (Container a b)
+      walker acc i = acc || isJust i.id || isJust i.payload || isSubtreeEmpty i.subtree
+  in not $ L.foldl walker false containers
+
+
 -- TODO: This is super borken, let's make it work :P
 delete :: forall a b. Path -> Int -> CharTree a b -> CharTree a b
 delete _ _ Leaf = Leaf
-delete Nil p (CharTree tree@{items}) = CharTree $ tree {items = M.delete p items}
+delete Nil p (CharTree tree@{items}) = case M.lookup p items of
+  Nothing -> CharTree tree
+  Just item -> case isSubtreeEmpty item.subtree of
+    true -> CharTree $ tree {items = M.delete p items}
+    false -> let emptyContainer = item {id = Nothing, payload = Nothing } in
+             CharTree $ tree {items = M.insert p emptyContainer items}
 delete (Cons x xs) p (CharTree tree@{items}) = case item of
     Nothing -> CharTree tree
     Just l  -> let withNewTree = l {subtree = delete xs p l.subtree} in
