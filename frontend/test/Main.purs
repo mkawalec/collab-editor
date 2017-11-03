@@ -8,7 +8,7 @@ import Control.Monad.Eff.Console (log)
 import Control.Monad.Eff.Random (RANDOM)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
 import Data.Array as A
-import Data.Foldable (foldl)
+import Data.Foldable (foldl, foldr, foldMap)
 import Data.List (List(..), init, last, head)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Bifunctor (bimap)
@@ -50,6 +50,21 @@ pathToPos path = let pathToNode = fromMaybe Nil (init path) in
 main :: Eff (RunnerEffects (QCRunnerEffects (random :: RANDOM))) Unit
 main = run [consoleReporter] do
   describe "LSEQ" do
+
+    describe "folds" do
+      let emptyTree = unsafePerformEff $ CharTree <$> newCharTree
+          (Tuple tree pos) = unsafePerformEff $ L.insert (makeLetter 'b' 0) Nil (Tuple (N 1) End) emptyTree
+          (Tuple tree' pos) = unsafePerformEff $ L.insert (makeLetter 'c' 1) Nil (Tuple (N 1) End) tree
+
+      it "should foldl" do
+        (foldl (\acc _ -> acc + 1) 0 tree') `shouldEqual` 2
+
+      it "should foldr" do
+        (foldr (\_ acc -> acc + 1) 0 tree') `shouldEqual` 2
+
+      it "foldMaps" do
+        (foldMap (const [2]) tree') `shouldEqual` [2,2]
+
 
     describe "delete" do
       it "should delete a single node" do
