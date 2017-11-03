@@ -1,7 +1,6 @@
 module LSEQ.Types where
 
 import Prelude
-import Data.List (List)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 
@@ -13,17 +12,14 @@ type Container a b = {
 
 data AllocType = Plus | Minus
 
+data Position = N Int | End
+
 type TreeBody a b = {
   items :: Map Int (Container a b)
 , allocType :: AllocType
 }
 
 data CharTree a b = Leaf | CharTree (TreeBody a b)
-
-data Position = Position (List Int) Int Int -- | (Subtree, p, q)
-
-capacity :: Int
-capacity = 50
 
 class CharTreeDisplay a where
   displayElement :: a -> String

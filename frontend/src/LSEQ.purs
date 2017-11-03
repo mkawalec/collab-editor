@@ -12,59 +12,60 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 
-import LSEQ.Types (CharTree(..), Container, TreeBody, capacity)
-import LSEQ.Helpers (getOffset, inBounds, newCharTree)
+import LSEQ.Types (CharTree(..), Container, TreeBody, Position(..))
+import LSEQ.Helpers (getOffset, newCharTree)
 
 
-walkTree :: forall a b e. Container a b -> Tuple Int Int -> Int -> List Int -> TreeBody a b ->
+walkTree :: forall a b e. Container a b -> Tuple Position Position ->
+            Int -> List Int -> Int -> TreeBody a b ->
             Eff (random :: RANDOM | e) (CharTree a b)
-walkTree item coords idx xs tree@{items, allocType} =
+walkTree item coords idx xs c tree@{items, allocType} =
   case M.lookup idx items of
     Nothing   -> do --pure $ CharTree $ tree {items = M.insert idx item items}
-      subtree <- CharTree <$> newCharTree >>= insert' item xs coords
+      subtree <- CharTree <$> newCharTree >>= insert' item xs coords (2 * c)
       let container = {id: Nothing, payload: Nothing, subtree: subtree}
       pure $ CharTree $ tree {items = M.insert idx container items}
     Just char -> do
-      subtree <- insert' item xs coords char.subtree
+      subtree <- insert' item xs coords (2 * c) char.subtree
       let char' = char {subtree = subtree}
       pure $ CharTree $ tree {items = M.insert idx char' items}
 
-insertAtOffset :: forall a b e. Container a b -> TreeBody a b -> Int ->
+insertAtOffset :: forall a b e. Container a b -> Int -> TreeBody a b -> Int ->
                   Eff (random :: RANDOM | e) (CharTree a b)
-insertAtOffset item tree@{items, allocType} 0 = case M.lookup 0 items of
+insertAtOffset item c tree@{items, allocType} 0 = case M.lookup 0 items of
   Just i -> do
-    newSubtree <- insert' item Nil (Tuple 1 capacity) i.subtree
+    newSubtree <- insert' item Nil (Tuple (N 1) End) (2 * c) i.subtree
     pure $ CharTree $ tree {items = M.insert 0 (i {subtree = newSubtree}) items}
   Nothing -> do
-    tree' <- CharTree <$> newCharTree >>= insert item Nil (Tuple 1 capacity)
+    tree' <- CharTree <$> newCharTree >>= insert' item Nil (Tuple (N 1) End) (2 * c)
     let newContainer = {id: Nothing, payload: Nothing, subtree: tree'}
     pure $ CharTree $ tree {items = M.insert 0 newContainer items}
 
-insertAtOffset item tree@{items, allocType} idx = case M.lookup idx items of
+insertAtOffset item c tree@{items, allocType} idx = case M.lookup idx items of
   Just i -> do
-    subtree <- insert item Nil (Tuple 1 capacity) i.subtree
+    subtree <- insert' item Nil (Tuple (N 1) End) (2 * c) i.subtree
     pure $ CharTree $ tree {items = M.insert idx (i {subtree = subtree}) items}
   Nothing -> pure $ CharTree $ tree {items = M.insert idx item items}
 
 
 -- TODO: return a path  at which insertion took place
-insert' :: forall a b e. Container a b -> List Int -> Tuple Int Int -> CharTree a b ->
-          Eff (random :: RANDOM | e) (CharTree a b)
-insert' item (Cons x xs) coords Leaf = newCharTree >>= walkTree item coords x xs
-insert' item (Cons x xs) coords (CharTree tree) = walkTree item coords x xs tree
+insert' :: forall a b e. Container a b -> List Int ->
+           Tuple Position Position -> Int -> CharTree a b ->
+           Eff (random :: RANDOM | e) (CharTree a b)
+insert' item (Cons x xs) coords c Leaf = newCharTree >>= walkTree item coords x xs (2 * c)
+insert' item (Cons x xs) coords c (CharTree tree) = walkTree item coords x xs (2 * c) tree
 
-insert' item Nil coords@(Tuple p q) t = case t of
+insert' item Nil coords@(Tuple p q) c t = case t of
   Leaf -> do
     tree <- newCharTree
-    offset <- getOffset tree.allocType p q
-    insertAtOffset item tree offset
+    offset <- getOffset tree.allocType c p q
+    insertAtOffset item c tree offset
   (CharTree tree@{items, allocType}) ->
-    getOffset allocType p q >>= insertAtOffset item tree
+    getOffset allocType c p q >>= insertAtOffset item c tree
 
-insert :: forall a b e. Container a b -> List Int -> Tuple Int Int -> CharTree a b ->
+insert :: forall a b e. Container a b -> List Int -> Tuple Position Position -> CharTree a b ->
           Eff (random :: RANDOM | e) (CharTree a b)
-insert item path (Tuple p q) tree =
-  insert' item path (Tuple (inBounds p) (inBounds q)) tree
+insert item path coords tree = insert' item path coords 30 tree
 
 delete :: forall a b. List Int -> Int -> CharTree a b -> CharTree a b
 delete _ _ Leaf = Leaf
