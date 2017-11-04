@@ -81,6 +81,7 @@ insert' item Nil coords@(Tuple p q) c pathWalked t = case t of
   (CharTree tree@{items, allocType}) ->
     getOffset allocType c p q >>= insertAtOffset item c tree pathWalked
 
+-- TODO: Letter should be the -1 argument
 insert :: forall a b e. Container a b -> Path ->
           Tuple Position Position -> CharTree a b ->
           Eff (random :: RANDOM | e) (Tuple (CharTree a b) Path)
@@ -95,7 +96,6 @@ isSubtreeEmpty (CharTree {items}) =
   in not $ L.foldl walker false containers
 
 
--- TODO: This is super borken, let's make it work :P
 delete :: forall a b. Path -> Int -> CharTree a b -> CharTree a b
 delete _ _ Leaf = Leaf
 delete Nil p (CharTree tree@{items}) = case M.lookup p items of

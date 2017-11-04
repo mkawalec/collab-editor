@@ -42,7 +42,6 @@ findPath id tree = case L.reverse <$> findPath' Nil id tree of
   Nothing   -> Nothing
   Just path -> L.init path >>= (\p -> (Tuple p) <$> L.last path)
 
-
 draw :: forall a b. Show a => CharTreeDisplay b => Int -> CharTree a b -> String
 draw _ Leaf = ""
 draw indent (CharTree {items}) =
