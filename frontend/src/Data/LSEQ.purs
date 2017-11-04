@@ -1,4 +1,4 @@
-module LSEQ (
+module Data.LSEQ (
   insert
 , insert'
 , delete
@@ -15,8 +15,8 @@ import Data.Bifunctor (bimap)
 import Data.Maybe (Maybe(..), isJust)
 import Data.Tuple (Tuple(..), snd)
 
-import LSEQ.Types (CharTree(..), Container, TreeBody, Position(..))
-import LSEQ.Helpers (getOffset, newCharTree)
+import Data.LSEQ.Types (CharTree(..), Container, TreeBody, Position(..))
+import Data.LSEQ.Helpers (getOffset, newCharTree)
 
 type Path = List Int
 

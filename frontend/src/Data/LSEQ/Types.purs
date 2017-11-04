@@ -1,4 +1,4 @@
-module LSEQ.Types where
+module Data.LSEQ.Types where
 
 import Prelude
 import Data.Map (Map)

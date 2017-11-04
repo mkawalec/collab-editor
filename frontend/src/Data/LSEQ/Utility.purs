@@ -1,11 +1,12 @@
-module LSEQ.Utility (
+module Data.LSEQ.Utility (
   print
 , draw
 , findPath
 ) where
 
 import Prelude
-import LSEQ.Types (CharTree(..), Container, class CharTreeDisplay, displayElement)
+import Data.LSEQ.Types (CharTree(..), Container,
+  class CharTreeDisplay, displayElement)
 
 import Data.List (List(..), foldMap)
 import Data.Tuple (Tuple(..))

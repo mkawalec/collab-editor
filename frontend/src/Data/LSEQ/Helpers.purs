@@ -1,4 +1,4 @@
-module LSEQ.Helpers where
+module Data.LSEQ.Helpers where
 
 import Prelude
 import Control.Monad.Eff (Eff)
@@ -8,7 +8,7 @@ import Data.Map as M
 import Math (pow)
 import Data.Int (floor, toNumber)
 
-import LSEQ.Types (AllocType(..), TreeBody, Position(..))
+import Data.LSEQ.Types (AllocType(..), TreeBody, Position(..))
 
 
 newCharTree :: forall e a b. Eff (random :: RANDOM | e) (TreeBody a b)

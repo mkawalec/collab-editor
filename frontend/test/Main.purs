@@ -25,10 +25,10 @@ import Test.Spec.Runner (RunnerEffects, run)
 import Control.Monad (whenM)
 import Debug.Trace (trace)
 
-import LSEQ as L
-import LSEQ.Utility as LU
-import LSEQ.Helpers (newCharTree)
-import LSEQ.Types (Container, CharTree(..), Position(..), class CharTreeDisplay, displayElement)
+import Data.LSEQ as L
+import Data.LSEQ.Utility as LU
+import Data.LSEQ.Helpers (newCharTree)
+import Data.LSEQ.Types (Container, CharTree(..), Position(..), class CharTreeDisplay, displayElement)
 
 makeLetter :: Char -> Int -> Container Int OurChar
 makeLetter l id = {id: Just id, payload: Just (OurChar l), subtree: Leaf}
