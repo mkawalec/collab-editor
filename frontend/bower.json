@@ -20,7 +20,9 @@
     "purescript-monoid": "^3.3.0",
     "purescript-transformers": "^3.4.0",
     "purescript-uuid": "^4.0.0",
-    "purescript-control": "^3.3.1"
+    "purescript-control": "^3.3.1",
+    "purescript-halogen": "^3.0.1",
+    "purescript-dom": "^4.10.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",
