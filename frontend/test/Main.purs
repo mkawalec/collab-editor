@@ -2,33 +2,33 @@ module Test.Main where
 
 import Prelude
 
+import Control.Comonad.Env (mapEnvT)
+import Control.Monad (whenM)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (log)
 import Control.Monad.Eff.Random (RANDOM)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
 import Data.Array as A
-import Data.Foldable (foldl, foldr, foldMap)
-import Data.List (List(..), init, last, head)
-import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Bifunctor (bimap)
-import Data.String as S
+import Data.Foldable (foldl, foldr, foldMap)
+import Data.LSEQ as L
+import Data.LSEQ.Helpers (newCharTree)
+import Data.LSEQ.Types (Container, CharTree(..), Position(..), class CharTreeDisplay, displayElement)
+import Data.LSEQ.Utility as LU
+import Data.List (List(..), init, last, head)
 import Data.Map as M
-import Data.Traversable (scanl)
-import Data.Tuple (Tuple(..), fst)
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.String as S
+import Data.Traversable (scanl, traverse, foldl)
+import Data.Tuple (Tuple(..), fst, snd)
+import Debug.Trace (trace)
 import Test.QuickCheck ((===))
 import Test.Spec (describe, it, pending)
 import Test.Spec.Assertions (shouldEqual, fail)
 import Test.Spec.QuickCheck (QCRunnerEffects, quickCheck, quickCheck')
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (RunnerEffects, run)
-import Control.Monad (whenM)
-import Debug.Trace (trace)
-
-import Data.LSEQ as L
-import Data.LSEQ.Utility as LU
-import Data.LSEQ.Helpers (newCharTree)
-import Data.LSEQ.Types (Container, CharTree(..), Position(..), class CharTreeDisplay, displayElement)
 
 makeLetter :: Char -> Int -> Container Int OurChar
 makeLetter l id = {id: Just id, payload: Just (OurChar l), subtree: Leaf}
@@ -49,6 +49,7 @@ pathToPos path = let pathToNode = fromMaybe Nil (init path) in
 
 main :: Eff (RunnerEffects (QCRunnerEffects (random :: RANDOM))) Unit
 main = run [consoleReporter] do
+  -- TODO: We should add an arbitrary instance of CharTree, but YOLO
   describe "LSEQ" do
 
     describe "folds" do
@@ -64,6 +65,30 @@ main = run [consoleReporter] do
 
       it "foldMaps" do
         (foldMap (const [2]) tree') `shouldEqual` [2,2]
+
+    describe "print" do
+      pending "prints an empty tree"
+      it "prints an arbitrary tree" do
+        emptyTree <- liftEff $ CharTree <$> newCharTree
+
+        quickCheck \str -> do
+          let chars = A.zip (A.reverse $ S.toCharArray str) (A.range 0 $ S.length str)
+              letters = map (\(Tuple c id) -> makeLetter c id) chars
+              result = scanl (
+                \(Tuple tree prev) l -> case prev of
+                  Nothing -> bimap id Just $ unsafePerformEff $ L.insert l Nil (Tuple (N 0) End) tree
+                  Just path -> case pathToPos path of
+                    Just (Tuple path' x) -> bimap id Just $ unsafePerformEff $ L.insert l path' (Tuple (N 0) (N $ x-1)) tree
+                    Nothing -> trace "can't find path" \_ -> (Tuple tree Nothing)
+                ) (Tuple emptyTree Nothing) $ letters
+              lastR = fromMaybe emptyTree (fst <$> A.last result)
+              {cache} = LU.print lastR
+
+          true === (A.all id (map (case _ of
+              (Tuple (Tuple _ (Just path)) id) -> (M.lookup id cache) == (Just path)
+              _ -> true
+            ) (A.zip result $ A.range 0 (A.length result - 1))))
+          --(fst $ printed) === str
 
 
     describe "delete" do
@@ -126,7 +151,7 @@ main = run [consoleReporter] do
               l.id `shouldEqual` Just 0
               l.payload `shouldEqual` (Just $ OurChar 'a')
 
-        LU.print withA `shouldEqual` "a"
+        (_.string $ LU.print withA) `shouldEqual` "a"
 
       it "inserts arbitrary strings character by character" do
         emptyTree <- liftEff $ CharTree <$> newCharTree
@@ -144,9 +169,9 @@ main = run [consoleReporter] do
               lastR = fromMaybe emptyTree $ A.last result
 
           -- I love how awful this is :D
-          let a = unsafePerformEff $ whenM (pure $ LU.print lastR /= str)
+          let a = unsafePerformEff $ whenM (pure $ (_.string $ LU.print lastR) /= str)
                                               (log $ foldl (\acc r -> acc <> LU.draw 0 r <> "\n") "\n\n" result)
-          LU.print lastR === str
+          (_.string $ LU.print lastR) === str
 
       it "inserts arbitrary strings character by character from the end" do
         emptyTree <- liftEff $ CharTree <$> newCharTree
@@ -162,6 +187,6 @@ main = run [consoleReporter] do
                     Nothing -> trace "can't find path" \_ -> (Tuple tree Nothing)
                 ) (Tuple emptyTree Nothing) $ letters
               lastR = fromMaybe emptyTree $ A.last result
-          let a = unsafePerformEff $ whenM (pure $ LU.print lastR /= str)
+          let a = unsafePerformEff $ whenM (pure $ (_.string $ LU.print lastR) /= str)
                                               (log $ foldl (\acc r -> acc <> LU.draw 0 r <> "\n") "\n\n" result)
-          LU.print lastR === str
+          (_.string $ LU.print lastR) === str

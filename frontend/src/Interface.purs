@@ -6,15 +6,17 @@ module Interface (
 import Prelude
 
 import Control.Monad.Aff (Aff)
-import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
 import DOM.Event.Event (Event, target)
 import DOM.Node.Node (nodeValue)
 import DOM.Node.Types (Node)
+import DOM (DOM)
 import Data.FastDiff (diff)
 import Data.LSEQ.Helpers (newCharTree)
 import Data.LSEQ.Types (CharTree(..), class CharTreeDisplay, displayElement)
 import Data.LSEQ.Utility as LU
+import Data.List (List(..))
+import Data.Tuple (Tuple(..))
 import Data.Maybe (Maybe(..))
 import Data.Op (Op(..))
 import Data.String as S
@@ -37,12 +39,18 @@ type State = {
 
 data Query a = DoNothing a | UpdateText Node a
 
-data Op = Insert (List Int) (Tuple Int Int) TreePayload | Delete (List Int)
+data TreeOp = Insert (List Int) (Tuple Int Int) TreePayload | Delete (List Int)
 
-genDiffs :: String -> String -> List Op
-genDiffs a b = let diffs = diff a b
+genDiffs :: String -> String -> List TreeOp
+genDiffs a b = Nil --let diffs = diff a b
 
-ui :: forall e. H.Component HH.HTML Query Unit Void (Aff e)
+-- TODO: Quickly generate a set of diffs to apply to a tree,
+--       apply them, generate a new output
+
+
+-- We need: print that returns raw nodes too
+
+ui :: forall e. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM | e))
 ui =
   H.component
     { initialState: const initialState
@@ -56,7 +64,7 @@ ui =
   initialState = {dataBackend: CharTree $ unsafePerformEff newCharTree}
 
   textAreaChanged :: Event -> HQ.Action Query
-  textAreaChangedg = UpdateText <<< target
+  textAreaChanged = UpdateText <<< target
 
   render :: State -> H.ComponentHTML Query
   render st =
@@ -66,11 +74,11 @@ ui =
         ]
       ]
 
-  eval :: Query ~> H.ComponentDSL State Query Void (Aff e)
+  eval :: Query ~> H.ComponentDSL State Query Void (Aff (dom :: DOM | e))
   eval = case _ of
     DoNothing next -> pure next
     UpdateText node next -> do
-      nodeText <- liftEff $ nodeValue node
+      nodeText <- H.liftEff $ nodeValue node
       backend <- H.gets _.dataBackend
 
       let currentText = LU.print backend

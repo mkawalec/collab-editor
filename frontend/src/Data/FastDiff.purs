@@ -1,9 +1,9 @@
-module FastDiff (
+module Data.FastDiff (
   diff
 , OpType(..)
 ) where
 
-import Data.Function (Fn2, runFn2)
+import Data.Function.Uncurried (Fn2, runFn2)
 import Data.Tuple (Tuple(..))
 
 data OpType = Insert | Equal | Delete
