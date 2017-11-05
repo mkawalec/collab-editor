@@ -3,12 +3,22 @@ module Data.FastDiff (
 , OpType(..)
 ) where
 
-import Data.Function.Uncurried (Fn2, runFn2)
+import Prelude
+import Data.Function.Uncurried (Fn3, runFn3)
 import Data.Tuple (Tuple(..))
+import Data.Bifunctor (bimap)
 
 data OpType = Insert | Equal | Delete
 
-foreign import rawDiff :: Fn2 String String (Array (Tuple OpType String))
+foreign import rawDiff :: forall a b.
+  Fn3 (a -> b -> Tuple a b) String String (Array (Tuple Int String))
 
 diff :: String -> String -> Array (Tuple OpType String)
-diff = runFn2 rawDiff
+diff a b = map withTypedOp result
+    where result = runFn3 rawDiff Tuple a b
+          opToType = case _ of
+            1 -> Insert
+            0 -> Equal
+            -1 -> Delete
+            _ -> Delete
+          withTypedOp = bimap opToType id

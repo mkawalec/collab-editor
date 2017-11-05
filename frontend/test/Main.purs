@@ -84,10 +84,11 @@ main = run [consoleReporter] do
               lastR = fromMaybe emptyTree (fst <$> A.last result)
               {cache} = LU.print lastR
 
-          true === (A.all id (map (case _ of
+          -- tests should return a monad, no way to check multiple conditions
+          true === (A.all id $ map (case _ of
               (Tuple (Tuple _ (Just path)) id) -> (M.lookup id cache) == (Just path)
               _ -> true
-            ) (A.zip result $ A.range 0 (A.length result - 1))))
+            ) (A.zip result $ A.range 0 (A.length result - 1)))
           --(fst $ printed) === str
 
 

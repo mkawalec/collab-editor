@@ -24,7 +24,8 @@
     "purescript-halogen": "^3.0.1",
     "purescript-dom": "^4.10.0",
     "purescript-functions": "^3.0.0",
-    "purescript-sequences": "^1.0.3"
+    "purescript-sequences": "^1.0.3",
+    "purescript-newtype": "^2.0.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",

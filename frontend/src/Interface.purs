@@ -13,11 +13,14 @@ import DOM.Node.Types (Node)
 import DOM (DOM)
 import Data.FastDiff (diff)
 import Data.LSEQ.Helpers (newCharTree)
-import Data.LSEQ.Types (CharTree(..), class CharTreeDisplay, displayElement)
+import Data.LSEQ.Types (CharTree(..), Container,
+  class CharTreeDisplay, displayElement)
 import Data.LSEQ.Utility as LU
 import Data.List (List(..))
 import Data.Tuple (Tuple(..))
 import Data.Maybe (Maybe(..))
+import Data.Map (Map)
+import Data.Record.Builder (merge, build)
 import Data.Op (Op(..))
 import Data.String as S
 import Halogen as H
@@ -25,6 +28,8 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
+
+import Data.Newtype (wrap)
 
 newtype TreePayload = TreePayload {
   char :: Char
@@ -35,6 +40,9 @@ instance displayPayload :: CharTreeDisplay TreePayload where
 
 type State = {
   dataBackend :: CharTree Int TreePayload
+, string :: String
+, containers :: Array (Container Int TreePayload)
+, cache :: Map Int (List Int)
 }
 
 data Query a = DoNothing a | UpdateText Node a
@@ -61,7 +69,8 @@ ui =
   where
 
   initialState :: State
-  initialState = {dataBackend: CharTree $ unsafePerformEff newCharTree}
+  initialState = build (merge {dataBackend: tree}) (LU.print tree)
+    where tree = CharTree $ unsafePerformEff newCharTree
 
   textAreaChanged :: Event -> HQ.Action Query
   textAreaChanged = UpdateText <<< target
