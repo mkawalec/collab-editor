@@ -45,9 +45,10 @@ print' path (CharTree {items}) = foldl walk acc asPairs
         walk ({string: accS, containers: accC, cache: map}) (Tuple k v) =
           case (Tuple <$> v.payload <*> v.id) of
             Just (Tuple p id) ->
-              let {string: s, containers: c, cache: map'} = print' (k:path) v.subtree
-                  s'  = accS `Seq.snoc` displayElement p `Seq.append` s
-                  c' = accC `Seq.snoc` v `Seq.append` c
+              let {string: s, containers: c, cache: map'} =
+                    print' (k:path) v.subtree
+                  s'    = accS `Seq.snoc` displayElement p `Seq.append` s
+                  c'    = accC `Seq.snoc` v `Seq.append` c
                   map'' = map `M.union` M.insert id (L.reverse $ k:path) map'
               in {string: s', containers: c', cache: map''}
             Nothing -> let {string: s, containers: c, cache: map'} =
@@ -63,10 +64,9 @@ print :: forall a b. Ord a => CharTreeDisplay b =>
 print tree = let {string: text, containers: containers, cache: pathMap} =
                     print' Nil tree
                  textAsString = S.joinWith "" $ Seq.toUnfoldable text
-                 containersArray = Seq.toUnfoldable containers
              in {
                   string: textAsString
-                , containers: containersArray
+                , containers: Seq.toUnfoldable containers
                 , cache: pathMap
                 }
 
