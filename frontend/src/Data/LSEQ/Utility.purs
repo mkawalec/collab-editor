@@ -36,22 +36,22 @@ type Result a b = {
 
 -- no need to pass the map around
 print' :: forall a b. Ord a => CharTreeDisplay b =>
-                      List Int -> Map a (List Int) -> CharTree a b ->
+                      List Int -> CharTree a b ->
                       Result' a b
-print' path map Leaf = {string: Seq.empty, containers: Seq.empty, cache: map}
-print' path m (CharTree {items}) = foldl walk acc asPairs
-  where acc = {string: Seq.empty, containers: Seq.empty, cache: m}
+print' path Leaf = {string: Seq.empty, containers: Seq.empty, cache: M.empty}
+print' path (CharTree {items}) = foldl walk acc asPairs
+  where acc = {string: Seq.empty, containers: Seq.empty, cache: M.empty}
         asPairs = (M.toAscUnfoldable items) :: Array (Tuple Int (Container a b))
         walk ({string: accS, containers: accC, cache: map}) (Tuple k v) =
           case (Tuple <$> v.payload <*> v.id) of
             Just (Tuple p id) ->
-              let {string: s, containers: c, cache: map'} = print' (k:path) map v.subtree
+              let {string: s, containers: c, cache: map'} = print' (k:path) v.subtree
                   s'  = accS `Seq.snoc` displayElement p `Seq.append` s
                   c' = accC `Seq.snoc` v `Seq.append` c
-                  map'' = M.insert id (L.reverse $ k:path) map'
+                  map'' = map `M.union` M.insert id (L.reverse $ k:path) map'
               in {string: s', containers: c', cache: map''}
             Nothing -> let {string: s, containers: c, cache: map'} =
-                              print' (k:path) map v.subtree
+                             print' (k:path) v.subtree
                        in {
                           string: (accS `Seq.append` s)
                         , containers: (accC `Seq.append` c)
@@ -61,7 +61,7 @@ print' path m (CharTree {items}) = foldl walk acc asPairs
 print :: forall a b. Ord a => CharTreeDisplay b =>
                      CharTree a b -> Result a b
 print tree = let {string: text, containers: containers, cache: pathMap} =
-                    print' Nil M.empty tree
+                    print' Nil tree
                  textAsString = S.joinWith "" $ Seq.toUnfoldable text
                  containersArray = Seq.toUnfoldable containers
              in {
