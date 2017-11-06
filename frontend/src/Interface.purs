@@ -7,29 +7,27 @@ import Prelude
 
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
+import DOM (DOM)
 import DOM.Event.Event (Event, target)
 import DOM.Node.Node (nodeValue)
 import DOM.Node.Types (Node)
-import DOM (DOM)
 import Data.FastDiff (diff)
 import Data.LSEQ.Helpers (newCharTree)
-import Data.LSEQ.Types (CharTree(..), Container,
-  class CharTreeDisplay, displayElement)
+import Data.LSEQ.Types (class CharTreeDisplay, CharTree(..), Container, Position(..), displayElement)
 import Data.LSEQ.Utility as LU
 import Data.List (List(..))
-import Data.Tuple (Tuple(..))
-import Data.Maybe (Maybe(..))
 import Data.Map (Map)
-import Data.Record.Builder (merge, build)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (wrap)
 import Data.Op (Op(..))
+import Data.Record.Builder (merge, build)
 import Data.String as S
+import Data.Tuple (Tuple(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
-
-import Data.Newtype (wrap)
 
 newtype TreePayload = TreePayload {
   char :: Char
@@ -49,8 +47,53 @@ data Query a = DoNothing a | UpdateText Node a
 
 data TreeOp = Insert (List Int) (Tuple Int Int) TreePayload | Delete (List Int)
 
-genDiffs :: String -> String -> List TreeOp
-genDiffs a b = Nil --let diffs = diff a b
+genDiffs :: State -> String -> String -> Tuple (List TreeOp) (CharTree Int TreePayload)
+genDiffs state a b =
+  where diffs = diff a b
+
+
+type DiffState = {idx :: Int, ops :: List TreeOp, state :: State}
+processDiff :: DiffState -> (Tuple OpType String) ->
+               Eff (random :: RANDOM | e) DiffState
+processDiff ({idx, ops, state}) (Tuple Equal diff) = {
+    idx: (idx + S.length diff)
+  , ops
+  , state
+  }
+
+processDiff ({idx, ops, state}) (Tuple Insert diff) = foldl
+  where letters = S.splitAt (Pattern "") diff
+        walker {idx, ops, state, prev} char = case prev of
+          Nothing -> let (Tuple path p) = lookupIdx idx state
+                         atPath = zoom path state.dataBackend
+                         q = case p of
+                          End -> End
+                          N idx -> case atPath of
+                            Leaf -> End
+                            (CharTree tree) -> case M.lookupGT idx tree.items of
+                              Nothing -> End
+                              Just {key, value} -> N key
+                      in
+                      L.insert (TreePayload {char: char}) path (Tuple p q) state.dataBackend
+
+
+-- TODO: This should be a lens
+zoom :: forall a b. (List Int) -> CharTree a b -> CharTree a b
+zoom Nil tree = tree
+zoom _ Leaf = Leaf
+zoom (Cons x xs) (CharTree tree) = case M.lookup x tree.items of
+  Nothing -> Leaf
+  Just container -> zoom xs container.subtree
+
+lookupIdx :: Int -> State -> Tuple (List Int) Position
+lookupIdx 0 _ = Tuple Nil (N 0)
+lookupIdx i state = case result of
+    Nothing -> Tuple Nil End
+    Just r  -> Just r
+  where result = state.containers !! (i - 1) >>= \c ->
+                 M.lookup (fromMaybe 0 c.id) state.cache >>= \path ->
+                 L.unsnoc path >>= \{init, last} ->
+                 Just (Tuple init (N last))
 
 -- TODO: Quickly generate a set of diffs to apply to a tree,
 --       apply them, generate a new output
