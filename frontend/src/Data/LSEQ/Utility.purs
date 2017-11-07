@@ -93,6 +93,7 @@ draw indent (CharTree {items, allocType}) =
     foldl (\acc (Tuple k v) -> acc <>
       indentStr <> "|- " <> fromMaybe "Nil" (displayElement <$> v.payload) <> ", " <>
       show v.id <> " at idx " <> show k <> "\n" <>
-      draw (indent + 1) v.subtree) ((show allocType) <> "\n") values
+      draw (indent + 1) v.subtree) allocTypeS values
   where values = M.toAscUnfoldable items :: List (Tuple Int (Container a b))
         indentStr = foldl (\s p -> s <> p) "" $ replicate indent "  "
+        allocTypeS = (S.joinWith "" $ replicate indent "  ") <> (show allocType) <> "\n"

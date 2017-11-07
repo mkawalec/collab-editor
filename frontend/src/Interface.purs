@@ -59,6 +59,10 @@ data Query a = DoNothing a | UpdateText Node a
 
 data TreeOp = OpInsert (List Int) TreePayload | OpDelete (Tuple (List Int) Int)
 
+-- TODO:
+-- [ ] Simplify this stuff A LOT to make it readable
+-- [x] Use intervals, not unform on the whole range
+
 type GenDiffResult = {
     ops :: List TreeOp
   , backend :: CharTree Int TreePayload
@@ -159,12 +163,6 @@ lookupIdx i state = case result of
                  M.lookup (fromMaybe 0 c.id) state.cache >>= \path ->
                  L.unsnoc path >>= \{init, last} ->
                  Just (Tuple init last)
-
--- TODO: Quickly generate a set of diffs to apply to a tree,
---       apply them, generate a new output
-
-
--- We need: print that returns raw nodes too
 
 ui :: forall e. H.Component HH.HTML Query Unit Void (Aff (dom :: DOM, random :: RANDOM | e))
 ui =

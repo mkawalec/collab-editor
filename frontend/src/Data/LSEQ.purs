@@ -15,7 +15,8 @@ import Data.Bifunctor (bimap)
 import Data.Maybe (Maybe(..), isJust)
 import Data.Tuple (Tuple(..), snd)
 
-import Data.LSEQ.Types (CharTree(..), Container, TreeBody, Position(..))
+import Data.LSEQ.Types (CharTree(..), Container, TreeBody,
+  Position(..), startingCapacity)
 import Data.LSEQ.Helpers (getOffset, newCharTree)
 
 type Path = List Int
@@ -86,7 +87,7 @@ insert :: forall a b e. Container a b -> Path ->
           Tuple Position Position -> CharTree a b ->
           Eff (random :: RANDOM | e) (Tuple (CharTree a b) Path)
 insert item path coords tree =
-  bimap id L.reverse <$> insert' item path coords 40 Nil tree
+  bimap id L.reverse <$> insert' item path coords startingCapacity Nil tree
 
 isSubtreeEmpty :: forall a b. CharTree a b -> Boolean
 isSubtreeEmpty Leaf               = true

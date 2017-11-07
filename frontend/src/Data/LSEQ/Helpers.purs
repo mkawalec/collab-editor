@@ -8,7 +8,8 @@ import Data.Map as M
 import Math (pow)
 import Data.Int (floor, toNumber)
 
-import Data.LSEQ.Types (AllocType(..), TreeBody, Position(..))
+import Data.LSEQ.Types (AllocType(..), TreeBody,
+  Position(..), startingCapacity)
 
 
 newCharTree :: forall e a b. Eff (random :: RANDOM | e) (TreeBody a b)
@@ -26,12 +27,13 @@ kumaraswamy a b =
 
 getOffset :: forall e. AllocType -> Int -> Position -> Position ->
              Eff (random :: RANDOM | e) Int
-getOffset allocType capacity p q = let p' = inBounds capacity p
-                                       q' = inBounds capacity q
-                          in
-  do
+getOffset allocType capacity p q =
+  let p' = inBounds capacity p
+      q' = inBounds capacity q
+      range = toNumber $ min (q' - p') startingCapacity
+  in do
     n <- kumaraswamy 2.0 5.0
-    let offset = floor $ n * (toNumber (q' - p'))
+    let offset = floor $ n * range
         idx    = case allocType of
                   Plus  -> p' + offset
                   Minus -> q' - offset

@@ -36,6 +36,9 @@ data CharTree a b = Leaf | CharTree (TreeBody a b)
 class CharTreeDisplay a where
   displayElement :: a -> String
 
+startingCapacity :: Int
+startingCapacity = 20
+
 derive instance functorCharTree :: Functor (CharTree a)
 
 -- can't define applicative/monad because of the stochastic positons
