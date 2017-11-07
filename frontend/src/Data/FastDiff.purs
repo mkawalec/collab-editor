@@ -11,6 +11,10 @@ import Data.Array as A
 import Data.List (List)
 
 data OpType = Insert | Equal | Delete
+instance showOpType :: Show OpType where
+  show Insert = "Insert"
+  show Equal = "Equal"
+  show Delete = "Delete"
 
 foreign import rawDiff :: forall a b.
   Fn3 (a -> b -> Tuple a b) String String (Array (Tuple Int String))

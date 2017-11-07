@@ -16,9 +16,15 @@ type Container a b = {
 
 data AllocType = Plus | Minus
 derive instance eqAllocType :: Eq AllocType
+instance showAllocType :: Show AllocType where
+  show Plus = "Plus"
+  show Minus = "Minus"
 
 data Position = N Int | End
 derive instance eqPosition :: Eq Position
+instance showPosition :: Show Position where
+  show (N i) = show i
+  show End = "End"
 
 type TreeBody a b = {
   items :: Map Int (Container a b)

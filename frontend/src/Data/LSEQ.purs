@@ -69,9 +69,9 @@ insert' :: forall a b e. Container a b -> Path ->
            Tuple Position Position -> Int -> Path -> CharTree a b ->
            Eff (random :: RANDOM | e) (Tuple (CharTree a b) Path)
 insert' item (Cons x xs) coords c pathWalked Leaf =
-  newCharTree >>= walkTree item coords x xs (2 * c) pathWalked
+  newCharTree >>= walkTree item coords x xs c pathWalked
 insert' item (Cons x xs) coords c pathWalked (CharTree tree) =
-  walkTree item coords x xs (2 * c) pathWalked tree
+  walkTree item coords x xs c pathWalked tree
 
 insert' item Nil coords@(Tuple p q) c pathWalked t = case t of
   Leaf -> do

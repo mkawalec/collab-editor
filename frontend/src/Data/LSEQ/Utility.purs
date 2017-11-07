@@ -89,10 +89,10 @@ findPath id tree = case L.reverse <$> findPath' Nil id tree of
 
 draw :: forall a b. Show a => CharTreeDisplay b => Int -> CharTree a b -> String
 draw _ Leaf = ""
-draw indent (CharTree {items}) =
+draw indent (CharTree {items, allocType}) =
     foldl (\acc (Tuple k v) -> acc <>
       indentStr <> "|- " <> fromMaybe "Nil" (displayElement <$> v.payload) <> ", " <>
       show v.id <> " at idx " <> show k <> "\n" <>
-      draw (indent + 1) v.subtree) "" values
+      draw (indent + 1) v.subtree) ((show allocType) <> "\n") values
   where values = M.toAscUnfoldable items :: List (Tuple Int (Container a b))
         indentStr = foldl (\s p -> s <> p) "" $ replicate indent "  "
