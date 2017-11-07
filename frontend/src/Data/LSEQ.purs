@@ -96,7 +96,6 @@ isSubtreeEmpty (CharTree {items}) =
       walker acc i = acc || isJust i.id || isJust i.payload || isSubtreeEmpty i.subtree
   in not $ L.foldl walker false containers
 
-
 delete :: forall a b. Path -> Int -> CharTree a b -> CharTree a b
 delete _ _ Leaf = Leaf
 delete Nil p (CharTree tree@{items}) = case M.lookup p items of

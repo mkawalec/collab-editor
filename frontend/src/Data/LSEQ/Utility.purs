@@ -6,13 +6,11 @@ module Data.LSEQ.Utility (
 
 import Prelude
 
-import Ansi.Output (strikethrough)
 import Control.Alt ((<|>))
-import Data.Array (replicate)
 import Data.Array as A
 import Data.Foldable (foldl)
 import Data.LSEQ.Types (CharTree(..), Container, class CharTreeDisplay, displayElement)
-import Data.List (List(..), foldMap, (:))
+import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map as M
 import Data.Map (Map)
@@ -56,10 +54,10 @@ print' path (CharTree {items}) = foldl walk acc asPairs
                        in {
                           string: (accS `Seq.append` s)
                         , containers: (accC `Seq.append` c)
-                        , cache: map'
+                        , cache: map `M.union` map'
                         }
 
-print :: forall a b. Ord a => CharTreeDisplay b =>
+print :: forall a b. Show a => Ord a => CharTreeDisplay b =>
                      CharTree a b -> Result a b
 print tree = let {string: text, containers: containers, cache: pathMap} =
                     print' Nil tree
@@ -95,5 +93,5 @@ draw indent (CharTree {items, allocType}) =
       show v.id <> " at idx " <> show k <> "\n" <>
       draw (indent + 1) v.subtree) allocTypeS values
   where values = M.toAscUnfoldable items :: List (Tuple Int (Container a b))
-        indentStr = foldl (\s p -> s <> p) "" $ replicate indent "  "
-        allocTypeS = (S.joinWith "" $ replicate indent "  ") <> (show allocType) <> "\n"
+        indentStr = foldl (\s p -> s <> p) "" $ A.replicate indent "  "
+        allocTypeS = (S.joinWith "" $ A.replicate indent "  ") <> (show allocType) <> "\n"
