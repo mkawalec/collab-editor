@@ -98,52 +98,30 @@ processDiff ({idx, ops, state}) (Tuple Insert diff) = do
     } letters
     pure $ {idx, ops, state}
   where letters = S.split (S.Pattern "") diff
-        walker {prev, idx, ops, state} char = case prev of
-          Nothing -> let (Tuple path p) = lookupPrevIdx idx state
-                         atPath = DT.trace ("p " <> show p <> " path " <> show path) \_ -> zoom path state.backend
-                         q = case atPath of
-                          Leaf -> End
-                          (CharTree tree) -> case M.lookupGT p tree.items of
-                            Nothing -> End
-                            Just {key, value} -> N (key - 1)
-                         payload = DT.trace ("q " <> show q) \_ -> {
-                             id: Just $ state.currentId + 1
-                           , payload: Just $ TreePayload {char}
-                           , subtree: Leaf
-                         }
-                      in do
-                      (Tuple tree path') <- LS.insert payload path (Tuple (N p) q) state.backend
-                      pure {
-                          idx: idx + 1
-                        , prev: L.unsnoc path'
-                        , ops: (OpInsert path' $ TreePayload {char}):ops
-                        , state: state {backend = tree, currentId = state.currentId + 1}
-                      }
-          Just ({init, last}) ->
-            let atPath = zoom init state.backend
-                q = case atPath of
-                  Leaf -> End
-                  (CharTree tree) -> case M.lookupGT last tree.items of
-                    Nothing -> End
-                    Just {key, value} -> N (key - 1)
-                payload = {
-                    id: Just $ state.currentId + 1
-                  , payload: Just $ TreePayload {char}
-                  , subtree: Leaf
-                }
-            in do
-            (Tuple tree path) <- LS.insert payload init (Tuple (N last) q) state.backend
+        upperBound tree path p = case zoom path tree of
+          Leaf -> End
+          (CharTree tree') -> case M.lookupGT p tree'.items of
+            Nothing -> End
+            Just {key, value} -> N (key - 1)
+        walker {prev, idx, ops, state} char =
+          let (Tuple path p) = case prev of
+                Nothing -> lookupPrevIdx idx state
+                Just ({init, last}) -> Tuple init last
+              q = upperBound state.backend path p
+              payload = {
+                  id: Just $ state.currentId + 1
+                , payload: Just $ TreePayload {char}
+                , subtree: Leaf
+              }
+          in do
+            (Tuple tree path') <- LS.insert payload path (Tuple (N p) q) state.backend
             pure {
-                idx: idx + 1
-              , prev: L.unsnoc path
-              , ops: (OpInsert path $ TreePayload {char}):ops
+              idx: idx + 1
+              , prev: L.unsnoc path'
+              , ops: (OpInsert path' $ TreePayload {char}):ops
               , state: state {backend = tree, currentId = state.currentId + 1}
-            }
-            --pure (L.unsnoc path >>= Tuple tree')
+              }
 
-
-
--- TODO: This should be a lens
 zoom :: forall a b. (List Int) -> CharTree a b -> CharTree a b
 zoom Nil tree = tree
 zoom _ Leaf = Leaf
