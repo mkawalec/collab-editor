@@ -15,6 +15,10 @@ module.exports = {
         exclude: /node_modules/,
         query: {
         }
+      },
+      {
+        test: /\.css$/,
+        loader: 'style-loader!css-loader'
       }
     ]
   },

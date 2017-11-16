@@ -10,6 +10,9 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.HTML.CSS (style)
+import CSS as CSS
+import CSS.Size (px, pct, vh)
 import Halogen.Query as HQ
 
 import Control.Monad.Aff (Aff)
@@ -51,10 +54,13 @@ component =
 
   render :: State -> H.ComponentHTML Query
   render st =
-    HH.div_ $
+    HH.div [ style do CSS.width $ px 500.0
+                      CSS.height $ vh 100.0 ]
       [ HH.textarea [
           HE.onInput (HE.input textAreaChanged)
         , HP.value st.string
+        , style do CSS.width $ pct 100.0
+                   CSS.height $ pct 100.0
         ]
       ]
 

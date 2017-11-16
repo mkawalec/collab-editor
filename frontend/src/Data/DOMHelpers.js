@@ -1,7 +1,6 @@
 
 
 function genValue(node) {
-    console.log('gotnode', arguments)
   return function() {
     return node.value
   }

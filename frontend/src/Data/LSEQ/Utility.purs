@@ -14,16 +14,19 @@ import Data.List (List(..), (:))
 import Data.List as L
 import Data.Map as M
 import Data.Map (Map)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, fromJust, isJust)
 import Data.Sequence (Seq)
 import Data.Sequence as Seq
 import Data.String as S
 import Data.Tuple (Tuple(..))
+import Partial.Unsafe (unsafePartial)
+
+import Data.Function.Uncurried (Fn3, runFn3)
 
 type Result' a b = {
   string :: Seq String
 , containers :: Seq (Container a b)
-, cache :: Map a (List Int)
+, cache :: Seq (Tuple a (List Int))
 }
 
 type Result a b = {
@@ -36,32 +39,34 @@ type Result a b = {
 print' :: forall a b. Ord a => CharTreeDisplay b =>
                       List Int -> CharTree a b ->
                       Result' a b
-print' path Leaf = {string: Seq.empty, containers: Seq.empty, cache: M.empty}
+print' path Leaf = {string: Seq.empty, containers: Seq.empty, cache: Seq.empty}
 print' path (CharTree {items}) = foldl walk acc asPairs
-  where acc = {string: Seq.empty, containers: Seq.empty, cache: M.empty}
+  where acc = {string: Seq.empty, containers: Seq.empty, cache: Seq.empty}
         asPairs = (M.toAscUnfoldable items) :: Array (Tuple Int (Container a b))
         walk ({string: accS, containers: accC, cache: map}) (Tuple k v) =
-          case (Tuple <$> v.payload <*> v.id) of
-            Just (Tuple p id) ->
-              let {string: s, containers: c, cache: map'} =
-                    print' (k:path) v.subtree
-                  s'    = accS `Seq.snoc` displayElement p `Seq.append` s
-                  c'    = accC `Seq.snoc` v `Seq.append` c
-                  map'' = map `M.union` M.insert id (L.reverse $ k:path) map'
+          if isJust v.payload && isJust v.id
+          then let p = unsafePartial $ fromJust v.payload
+                   id = unsafePartial $ fromJust v.id
+                   {string: s, containers: c, cache: map'} =
+                      print' (k:path) v.subtree
+                   s'    = accS `Seq.snoc` displayElement p `Seq.append` s
+                   c'    = accC `Seq.snoc` v `Seq.append` c
+                   map'' = map `Seq.snoc` (Tuple id (L.reverse $ k:path)) `Seq.append` map'
               in {string: s', containers: c', cache: map''}
-            Nothing -> let {string: s, containers: c, cache: map'} =
-                             print' (k:path) v.subtree
-                       in {
-                          string: (accS `Seq.append` s)
-                        , containers: (accC `Seq.append` c)
-                        , cache: map `M.union` map'
-                        }
+          else let {string: s, containers: c, cache: map'} =
+                      print' (k:path) v.subtree
+               in {
+                    string: (accS `Seq.append` s)
+                  , containers: (accC `Seq.append` c)
+                  , cache: map `Seq.append` map'
+                  }
 
 print :: forall a b. Show a => Ord a => CharTreeDisplay b =>
                      CharTree a b -> Result a b
-print tree = let {string: text, containers: containers, cache: pathMap} =
+print tree = let {string: text, containers: containers, cache: pathSeq} =
                     print' Nil tree
                  textAsString = S.joinWith "" $ Seq.toUnfoldable text
+                 pathMap = M.fromFoldable pathSeq
              in {
                   string: textAsString
                 , containers: Seq.toUnfoldable containers

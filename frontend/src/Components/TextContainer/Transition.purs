@@ -29,9 +29,11 @@ transition state a b = let diffs = diff a b in do
 
 
 type DiffState = {idx :: Int, ops :: List TreeOp, state :: State}
+
 processDiff :: forall e. DiffState -> (Tuple OpType String) ->
                Eff (random :: RANDOM | e) DiffState
 processDiff state@({idx}) (Tuple Equal diff) = pure state { idx = idx + S.length diff }
+
 processDiff diffState (Tuple Delete diff) =
     pure $ foldl deleteLetter diffState letters
   where letters = S.split (S.Pattern "") diff
