@@ -1,0 +1,52 @@
+name:                backend
+version:             0.1.0.0
+github:              "mkawalec/collab-edit"
+license:             GPL3
+author:              "Michał Kawalec <michal@monad.cat>"
+maintainer:          "michal@monad.cat"
+copyright:           "2018 Michał Kawalec"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Backend for a collaborative text editor
+# category:            Web
+
+description:         Please see the README on Github at <https://github.com/mkawalec/collab-edit#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- containers == 0.5.*
+
+default-extensions:
+- OverloadedStrings
+- DeriveGeneric
+- DeriveAnyClass
+- ScopedTypeVariables
+
+library:
+  source-dirs: src
+
+executables:
+  simple-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - backend
+
+tests:
+  simple-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - backend
