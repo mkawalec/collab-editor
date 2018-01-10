@@ -19,6 +19,7 @@ description:         Please see the README on Github at <https://github.com/mkaw
 dependencies:
 - base >= 4.7 && < 5
 - containers == 0.5.*
+- random == 1.1.*
 
 default-extensions:
 - OverloadedStrings
@@ -30,7 +31,7 @@ library:
   source-dirs: src
 
 executables:
-  simple-exe:
+  collab-edit-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -41,7 +42,7 @@ executables:
     - backend
 
 tests:
-  simple-test:
+  collab-edit-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
